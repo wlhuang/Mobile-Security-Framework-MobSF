@@ -1,4 +1,7 @@
 #!/bin/bash
+
+python3 EmulatorLauncher.py
+
 var="$1"
 
 function validate_ip () {
