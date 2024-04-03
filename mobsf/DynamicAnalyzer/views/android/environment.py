@@ -36,7 +36,7 @@ from mobsf.MobSF.utils import (
 from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 
 logger = logging.getLogger(__name__)
-ANDROID_API_SUPPORTED = 30
+ANDROID_API_SUPPORTED = 34
 
 
 class Environment:
@@ -148,6 +148,7 @@ class Environment:
             '-r',
             '-t',
             '-d',
+            '-g',
             apk_path], False, True)
         if not out:
             return False, 'adb install failed'
