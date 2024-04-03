@@ -42,6 +42,41 @@ from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 
 logger = logging.getLogger(__name__)
 
+PERMISSION_GROUPS = {
+    'LOCATION': ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
+    'CAMERA': ['CAMERA'],
+    'STORAGE': ['READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE'],
+}
+
+def map_permissions_to_group(permission):
+    parts = permission.split('.')
+    permission_name = parts[-1]
+    for group, permissions in PERMISSION_GROUPS.items():
+        if permission_name in permissions:
+            return group
+    return None
+
+def cut_string(input_string):
+    index = input_string.find('_')
+    if index != -1:
+        result = input_string[:index]
+        return result
+    else:
+        return input_string
+
+def select_frida_script(permissions):
+    scripts = []
+    for permission in permissions:
+        group = map_permissions_to_group(permission)
+        #print(group)
+        if group:
+            for filename in os.listdir('mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+                if cut_string(filename) == group:
+                    if filename in scripts:
+                        pass
+                    else:
+                        scripts.append(filename)
+    return scripts
 
 def android_dynamic_analysis(request, api=False):
     """Android Dynamic Analysis Entry point."""
@@ -64,6 +99,7 @@ def android_dynamic_analysis(request, api=False):
                 'FILE_NAME': apk.FILE_NAME,
                 'PACKAGE_NAME': apk.PACKAGE_NAME,
                 'DYNAMIC_REPORT_EXISTS': logcat.exists(),
+                'PERMISSIONS': apk.PERMISSIONS
             }
             scan_apps.append(temp_dict)
         try:
@@ -110,6 +146,8 @@ def dynamic_analyzer(request, checksum, api=False):
         identifier = None
         activities = None
         exported_activities = None
+        text = None
+        file_list_without_extension = None
         if api:
             reinstall = request.POST.get('re_install', '1')
             install = request.POST.get('install', '1')
@@ -148,6 +186,39 @@ def dynamic_analyzer(request, checksum, api=False):
             logger.warning(
                 'Failed to get Activities. '
                 'Static Analysis not completed for the app.')
+
+        # Get permissions from the static analyzer results
+        try:
+            static_android_db = StaticAnalyzerAndroid.objects.get(
+                MD5=checksum)
+            permissions = python_list(static_android_db.PERMISSIONS)
+            #print(permissions)
+            permissionlist = []
+            for i in permissions:
+                permissionlist.append(i)
+            #print(permissionlist)
+            selected_script = select_frida_script(permissions) 
+            #print(selected_script)
+            text = '// The suggested Frida scripts for dynamic analysis are: '
+            for scripts in selected_script:
+                text = text + '\n // ' + scripts 
+            for scripts in selected_script:
+                file_path = 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
+                try:
+                    with open(file_path, 'r') as file:
+                            texting = file.read()
+                            text = text + '\n\n' + texting
+                except FileNotFoundError:
+                    print("File not found:", file_path)
+                except Exception as e:
+                    print("Error:", e)
+            file_list_without_extension = [filename.replace('.js', '') for filename in selected_script]
+
+        except ObjectDoesNotExist:
+            logger.warning(
+                'Failed to get Activities. '
+                'Static Analysis not completed for the app.')
+
         env = Environment(identifier)
         if not env.connect_n_mount():
             msg = 'Cannot Connect to ' + identifier
@@ -207,7 +278,9 @@ def dynamic_analyzer(request, checksum, api=False):
                    'version': settings.MOBSF_VER,
                    'activities': activities,
                    'exported_activities': exported_activities,
-                   'title': 'Dynamic Analyzer'}
+                   'title': 'Dynamic Analyzer',
+                   'text': text,
+                   'scripts': file_list_without_extension}
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
         if api:
             return context
