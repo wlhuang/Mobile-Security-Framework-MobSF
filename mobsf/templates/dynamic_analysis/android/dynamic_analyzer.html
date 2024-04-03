@@ -55,6 +55,13 @@
     #start_activity_form{
         margin-top: 10px;
     }
+    .checkbox-container {
+      max-height: 200px; /* Set maximum height */
+      overflow-y: auto; /* Enable vertical scrollbar */
+      border: 1px solid #ccc; /* Add border */
+      border-radius: 4px; /* Add rounded corners */
+      padding: 10px; /* Add some padding */
+    }
 
 </style>
 
@@ -301,20 +308,19 @@
               <div class="row">
                   <div class="col-12">
 <textarea id="code-js" rows="100">
-Java.perform(function() {
-  // Use send() for logging
-});
+{{text}}
 </textarea>
                   </div>
                   <div class="col-12">
                     <br/>
                     <div class="form-group">
-                      <span class="box-title">Available Scripts (Use CTRL to choose multiple)  </span>
+                      <span class="box-title">Available Scripts (Recommended scripts are highlighted)  </span>
                       <button id="loadscript" type="submit" class="btn btn-primary btn-sm">Load</button>
                     </div>
                     <div class="form-group">
-                         <select id="fd_scs" size="10" multiple="" class="form-control">
-                          </select>
+                      <div id="fd_scs" class="form-group checkbox-container">
+                        <!-- Checkbox options will be appended here -->
+                      </div>            
                     </div>
                   </div>
                 </div>
@@ -575,12 +581,16 @@ function escapeHtml(unsafe){
 }
 
 // Frida load other scripts
-function load_frida_others(){
-  action('{% url 'list_frida_scripts' %}', {device: 'android'}, function(json) {
-    if (json.status==="ok"){
-        json.files.forEach(function(script) {
-          $('#fd_scs').append('<option value=' + escape(script) + '>' + escape(script) + '</option>');
-        });
+function load_frida_others() {
+  action('{% url "list_frida_scripts" %}', { device: 'android' }, function(json) {
+    if (json.status === "ok") {
+      json.files.forEach(function(script) {
+        if ('{{scripts}}'.includes(script)) {
+          $('#fd_scs').append('<label style="background-color: yellow !important;" ><input type="checkbox" name="frida_script" value="' + escape(script) + '" checked> ' + escape(script) + '</label><br>');
+        } else {
+          $('#fd_scs').append('<label><input type="checkbox" name="frida_script" value="' + escape(script) + '"> ' + escape(script) + '</label><br>');
+        }
+      });
     }
   });
 }
@@ -592,16 +602,16 @@ var editor = CodeMirror.fromTextArea(document.getElementById("code-js"), {
     gutters: ["CodeMirror-lint-markers"],
     lint: true,
     lineWrapping: true,
-    onLoad: restore(),
+    // onLoad: restore(),
   });
 
-//Restore Code
-function restore(){
-  var custom_code = window.sessionStorage.getItem("code_android");
-  if (custom_code !== null) {
-    setTimeout(function(){ editor.getDoc().setValue(custom_code); }, 2000);
-  }
-}
+// //Restore Code
+// function restore(){
+//   var custom_code = window.sessionStorage.getItem("code_android");
+//   if (custom_code !== null) {
+//     setTimeout(function(){ editor.getDoc().setValue(custom_code); }, 2000);
+//   }
+// }
 
 // Terminal
 var util = util || {};
@@ -1203,13 +1213,18 @@ $("#logstream").click(function() {
 
 // Load Frida Scripts
 $("#loadscript").click(function() {
-   var scripts = $('#fd_scs').val();
-   action('{% url 'get_script' %}', {scripts: scripts, device: 'android'}, function(json) {
-    if (json.status==="ok"){
-        editor.getDoc().setValue(json.content);
-    }
+    var selectedScripts = [];
+  $('input[name="frida_script"]:checked').each(function() {
+      selectedScripts.push($(this).val());
   });
-  return false;  
+  console.log(selectedScripts);
+
+  action('{% url 'get_script' %}', {scripts: selectedScripts, device: 'android'}, function(json) {
+  if (json.status==="ok"){
+      editor.getDoc().setValue(json.content);
+  }
+});
+return false;  
 });
 
 // Frida Spawn, Session and Ps
