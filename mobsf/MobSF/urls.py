@@ -214,7 +214,7 @@ if settings.API_ONLY == '0':
         re_path(r'^android/dynamic_analysis/$',
                 dz.android_dynamic_analysis,
                 name='dynamic_android'),
-        re_path(r'^android_dynamic/(?P<checksum>[0-9a-f]{32})$',
+        re_path(r'^android_dynamic/(?P<checksum>[0-9a-f]{32})/(?P<identifier>[0-9a-z-]{13})/$',
                 dz.dynamic_analyzer,
                 name='dynamic_analyzer'),
         re_path(r'^httptools$',

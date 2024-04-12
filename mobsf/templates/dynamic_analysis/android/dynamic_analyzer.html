@@ -69,7 +69,7 @@
     <div class="container-fluid">
       <div class="row mb-2">
         <div id="mobsf_header">
-            <h2><strong>Dynamic Analyzer </strong>- {{ package }}</h2>
+            <h2><strong>Dynamic Analyzer </strong>- {{ package }}- {{devicecurrentlyinused}}</h2>
         </div>
       </div>
     </div>
@@ -878,7 +878,7 @@ $("#screen").click(function() {
           touch = "on";
           screenfunc = setInterval(function(){
               // Capture Screen
-              action('{% url 'screen_cast' %}', {}, function(json) {
+              action('{% url 'screen_cast'%}', {deviceidentifier: '{{ devicecurrentlyinused }}'}, function(json) {
                 if (json.status == 'ok'){
                   if (screen_width === undefined || screen_height === undefined){
                     // Get Screen Resolution from Image
@@ -1248,6 +1248,7 @@ function frida_instrument(frida_action, pid=null, new_pkg=null){
       print_status("Getting injected frida script.");
     }
     action('{% url 'android_instrument' %}', {
+      deviceidentifier: '{{ devicecurrentlyinused }}',
       frida_action,
       pid, // attach pid
       new_package: new_pkg, // attach package

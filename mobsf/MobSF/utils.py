@@ -370,30 +370,26 @@ def get_device():
     """Get Devices."""
     emulator_identifiers = []
     devices = []
+
     if os.getenv('ANALYZER_IDENTIFIER'):
         return [docker_translate_localhost(os.getenv('ANALYZER_IDENTIFIER'))]
     elif settings.ANALYZER_IDENTIFIER:
         return [docker_translate_localhost(settings.ANALYZER_IDENTIFIER)]
     else:
-        dev_id = ''
-        out = subprocess.check_output([get_adb(), 'devices']).splitlines()
-        for line in out[1:]:
-            dev_id2 = line.decode('utf-8').split('\t')[0]
-            if 'daemon started successfully' not in dev_id2:
-                emulator_identifiers.append(docker_translate_localhost(dev_id2))
-        if len(out) > 2:
-            for dev_id in emulator_identifiers:
-                devices.append(dev_id)
-        else:
-            dev_id = out[1].decode('utf-8').split('\t')[0]
-            if 'daemon started successfully' not in dev_id:
-                devices.append(docker_translate_localhost(dev_id))
+        try:
+            out = subprocess.check_output([get_adb(), 'devices']).splitlines()
+            for line in out[1:]:
+                dev_id = line.decode('utf-8').split('\t')[0]
+                if 'daemon started successfully' not in dev_id:
+                    devices.append(docker_translate_localhost(dev_id))
+        except Exception as e:
+            logger.error("Error getting devices: %s", e)
+
     # Remove empty strings from the list
     devices = [device for device in devices if device]
     if not devices:
         logger.error(get_android_dm_exception_msg())
     return devices
-
 
 def get_adb():
     """Get ADB binary path."""
