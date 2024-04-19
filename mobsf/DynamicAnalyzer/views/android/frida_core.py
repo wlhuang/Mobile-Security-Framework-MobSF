@@ -4,7 +4,7 @@ import sys
 import time
 
 from django.conf import settings
-
+import threading
 import frida
 
 from mobsf.DynamicAnalyzer.views.android.environment import Environment
@@ -26,7 +26,8 @@ _FPID = None
 
 class Frida:
 
-    def __init__(self, app_hash, package, defaults, auxiliary, extras, code):
+    def __init__(self, app_hash, package, defaults, auxiliary, extras, code, deviceidentifier):
+        self.deviceidentifier = deviceidentifier
         self.hash = app_hash
         self.package = package
         self.defaults = defaults
@@ -36,9 +37,10 @@ class Frida:
         self.frida_dir = Path(settings.TOOLS_DIR) / 'frida_scripts' / 'android'
         self.apk_dir = Path(settings.UPLD_DIR) / self.hash
         self.api_mon = self.apk_dir / 'mobsf_api_monitor.txt'
-        self.frida_log = self.apk_dir / 'mobsf_frida_out.txt'
+        self.frida_log = self.apk_dir / '{}_mobsf_frida_out.txt'.format(deviceidentifier)
         self.deps = self.apk_dir / 'mobsf_app_deps.txt'
         self.clipboard = self.apk_dir / 'mobsf_app_clipboard.txt'
+        print(deviceidentifier)
 
     def get_scripts(self, script_type, selected_scripts):
         """Get Frida Scripts."""
@@ -126,11 +128,13 @@ class Frida:
         """Frida Spawn."""
         global _FPID
         try:
-            env = Environment()
+            env = Environment(self.deviceidentifier)
             self.clean_up()
             env.run_frida_server()
+            #print(get_device())
+            #print(self.deviceidentifier)
             device = frida.get_device(
-                get_device(),
+                self.deviceidentifier,
                 settings.FRIDA_TIMEOUT)
             logger.info('Spawning %s', self.package)
             _FPID = device.spawn([self.package])
@@ -155,59 +159,65 @@ class Frida:
     def session(self, pid, package):
         """Use existing session to inject frida scripts."""
         global _FPID
+        #lock = threading.Lock()
+        #lock.acquire()
         try:
             try:
-                device = frida.get_device(
-                    get_device(),
-                    settings.FRIDA_TIMEOUT)
-                if pid and package:
-                    _FPID = pid
-                    self.package = package
                 try:
-                    front = device.get_frontmost_application()
-                    if front and front.pid != _FPID:
-                        # Not the front most app.
-                        # Get the pid of the front most app
-                        logger.warning('Front most app has PID %s', front.pid)
-                        _FPID = front.pid
+                    device = frida.get_device(
+                        self.deviceidentifier,
+                        settings.FRIDA_TIMEOUT)
+                    if pid and package:
+                        _FPID = pid
+                        self.package = package
+                    try:
+                        front = device.get_frontmost_application()
+                        if front and front.pid != _FPID:
+                            # Not the front most app.
+                            # Get the pid of the front most app
+                            logger.warning('Front most app has PID %s', front.pid)
+                            _FPID = front.pid
+                    except Exception:
+                        pass
+                    # pid is the fornt most app
+                    session = device.attach(_FPID)
+                    time.sleep(2)
+                except frida.NotSupportedError:
+                    logger.exception('Not Supported Error')
+                    return
                 except Exception:
-                    pass
-                # pid is the fornt most app
-                session = device.attach(_FPID)
-                time.sleep(2)
+                    logger.exception('Cannot attach to pid, spawning again')
+                    self.spawn()
+                    session = device.attach(_FPID)
+                    time.sleep(2)
+                if session and device and _FPID:
+                    script = session.create_script(self.get_script())
+                    script.on('message', self.frida_response)
+                    script.load()
+                    api = script.exports_sync
+                    self.api_handler(api)
+                    sys.stdin.read()
+                    script.unload()
+                    session.detach()
             except frida.NotSupportedError:
                 logger.exception('Not Supported Error')
-                return
+            except (frida.ProcessNotFoundError,
+                    frida.ProcessNotRespondingError,
+                    frida.TransportError,
+                    frida.InvalidOperationError):
+                pass
             except Exception:
-                logger.exception('Cannot attach to pid, spawning again')
-                self.spawn()
-                session = device.attach(_FPID)
-                time.sleep(2)
-            if session and device and _FPID:
-                script = session.create_script(self.get_script())
-                script.on('message', self.frida_response)
-                script.load()
-                api = script.exports_sync
-                self.api_handler(api)
-                sys.stdin.read()
-                script.unload()
-                session.detach()
-        except frida.NotSupportedError:
-            logger.exception('Not Supported Error')
-        except (frida.ProcessNotFoundError,
-                frida.ProcessNotRespondingError,
-                frida.TransportError,
-                frida.InvalidOperationError):
+                logger.exception('Error Connecting to Frida')
+        finally:
+            #lock.release()
             pass
-        except Exception:
-            logger.exception('Error Connecting to Frida')
 
     def ps(self):
         """Get running process pid."""
         ps_dict = []
         try:
             device = frida.get_device(
-                get_device(),
+                self.deviceidentifier,
                 settings.FRIDA_TIMEOUT)
             processes = device.enumerate_applications(scope='minimal')
             if device and processes:

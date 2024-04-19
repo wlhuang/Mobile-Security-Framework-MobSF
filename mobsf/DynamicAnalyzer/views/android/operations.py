@@ -47,6 +47,7 @@ def get_package_name(checksum):
             return None
         with pkg_file.open(encoding='utf-8') as src:
             packages = json.load(src)
+            print(packages)
         if packages.get(checksum):
             return packages[checksum][0]
         return None
@@ -193,7 +194,8 @@ def screen_cast(request):
         'status': 'failed',
         'message': 'Failed to stream screen'}
     try:
-        env = Environment()
+        deviceidentifier = request.POST['deviceidentifier']
+        env = Environment(deviceidentifier)
         b64dat = env.screen_stream()
         data = {
             'status': 'ok',

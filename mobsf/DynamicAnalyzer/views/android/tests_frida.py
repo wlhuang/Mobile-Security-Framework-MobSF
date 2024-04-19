@@ -70,6 +70,8 @@ def instrument(request, api=False):
         default_hooks = request.POST['default_hooks']
         auxiliary_hooks = request.POST['auxiliary_hooks']
         code = request.POST['frida_code']
+        deviceidentifier = request.POST['deviceidentifier']
+        print(deviceidentifier)
         # Fill extras
         extras = {}
         class_name = request.POST.get('class_name')
@@ -95,7 +97,8 @@ def instrument(request, api=False):
                           default_hooks.split(','),
                           auxiliary_hooks.split(','),
                           extras,
-                          code)
+                          code,
+                          deviceidentifier)
         if action == 'spawn':
             logger.info('Starting Instrumentation')
             frida_obj.spawn()

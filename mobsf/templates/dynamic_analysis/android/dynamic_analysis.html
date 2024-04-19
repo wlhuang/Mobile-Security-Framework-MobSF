@@ -59,8 +59,6 @@ textarea:focus {
   <div class="content-header">
   </div>
    <div class="container-fluid">
-
-
    <div class="row">
           {% if not identifier %}
           <div class="col-md-12">
@@ -140,7 +138,8 @@ textarea:focus {
               </div>
               <div class="card-body">
                  <div class="table-responsive">
-                  <h4> Apps in Device</h4>
+                  {% for device, apps in device_packages.items %}
+                  <h4> Apps in Device - {{device}} </h4>
                   <table class="table table-bordered table-hover table-striped">
                     <thead>
                     <tr>
@@ -150,8 +149,8 @@ textarea:focus {
                     </tr>
                     </thead>
                     <tbody>
-                    {% if device_packages %}
-                    {% for hash, det in device_packages.items %}
+                    {% if apps %}
+                    {% for hash, det in apps.items %}
                         <tr>
                             <td align="center">
                               <img id="app_icon" src="/download/{{ hash }}-icon.png" onerror="this.onerror=null;this.src='{% static 'img/no_icon.png' %}'"/>
@@ -162,7 +161,7 @@ textarea:focus {
                            </td>
                             <td align="center"> 
                               <p>
-                                <a class="btn btn-primary disable" onclick="dynamic_loader()" href="{% url "dynamic_analyzer" checksum=hash %}?re_install=0&install=0"><i class="fab fa-android"></i> Start Dynamic Analysis</a>
+                                <a class="btn btn-primary disable" onclick="dynamic_loader()" href="{% url "dynamic_analyzer" checksum=hash identifier=device %}?re_install=0&install=0"><i class="fab fa-android"></i> Start Dynamic Analysis</a>
                               </p>
                               <p>
                                 <a class="btn btn-warning disable" onclick="dynamic_loader()" href="{% url "static_scan" checksum=hash %}"><i class="fa fa-download"></i> Pull &amp; Static Analysis</a>
@@ -176,6 +175,7 @@ textarea:focus {
                     {% endif %}
                     </tbody>
                 </table>
+                {% endfor %}
               </br>
                   <h4> Apps Available</h4>
                 <table class="table table-bordered table-hover table-striped">
@@ -284,8 +284,8 @@ textarea:focus {
 <script src="{% static "others/js/datatables_init.js" %}"></script>
 <script>
 function dynamic_loader(){
-    var loadingOverlay = document.querySelector('.loading');
-    loadingOverlay.classList.remove('hidden');
+    // var loadingOverlay = document.querySelector('.loading');
+    // loadingOverlay.classList.remove('hidden');
 }
 
 //MobSFy AJAX
