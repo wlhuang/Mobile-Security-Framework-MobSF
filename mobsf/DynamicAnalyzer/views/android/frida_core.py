@@ -37,7 +37,7 @@ class Frida:
         self.frida_dir = Path(settings.TOOLS_DIR) / 'frida_scripts' / 'android'
         self.apk_dir = Path(settings.UPLD_DIR) / self.hash
         self.api_mon = self.apk_dir / 'mobsf_api_monitor.txt'
-        self.frida_log = self.apk_dir / 'mobsf_frida_out.txt'
+        self.frida_log = self.apk_dir / '{}_mobsf_frida_out.txt'.format(deviceidentifier)
         self.deps = self.apk_dir / 'mobsf_app_deps.txt'
         self.clipboard = self.apk_dir / 'mobsf_app_clipboard.txt'
         print(deviceidentifier)

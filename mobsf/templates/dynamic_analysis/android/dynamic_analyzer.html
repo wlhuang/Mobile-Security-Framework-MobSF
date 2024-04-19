@@ -847,7 +847,7 @@ print_status("Start Instrumentation or Run the application and navigate through 
 
 function get_logs(){
       $.ajax({
-        url : '{% url 'frida_logs' %}?hash={{ hash }}&stream=1', 
+        url : '{% url 'frida_logs' %}?hash={{ hash }}&stream=1&deviceIdentifier={{ devicecurrentlyinused }}', 
         type : "GET",
         dataType: "json", 
         success : function(json){ 

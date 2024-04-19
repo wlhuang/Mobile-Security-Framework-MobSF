@@ -84,25 +84,37 @@ def frida_logs(request, api=False):
             'message': 'Data does not exist.'}
         if api:
             apphash = request.POST['hash']
+            #print(apphash)
             stream = True
+            deviceidentifier = request.POST.get('deviceIdentifier', '')
+            #print(deviceidentifier)
         else:
             apphash = request.GET.get('hash', '')
+            #print(apphash)
             stream = request.GET.get('stream', '')
+            deviceidentifier = request.GET.get('deviceIdentifier', '')
+            #print(deviceidentifier)
         if not is_md5(apphash):
             data['message'] = 'Invalid hash'
             return send_response(data, api)
         if stream:
+            #print(deviceidentifier)
             apk_dir = os.path.join(settings.UPLD_DIR, apphash + '/')
-            frida_logs = os.path.join(apk_dir, 'mobsf_frida_out.txt')
+            frida_logs = os.path.join(apk_dir, '{}_mobsf_frida_out.txt'.format(deviceidentifier))
+            #print(frida_logs)
             if not is_file_exists(frida_logs):
+                #print('does not exists')
                 return send_response(data, api)
             with open(frida_logs, 'r',
                       encoding='utf8',
                       errors='ignore') as flip:
+                #message = flip.read()
+                #print(message)
                 data = {
                     'status': 'ok',
                     'message': flip.read(),
                 }
+                #print(data)
             return send_response(data, api)
         logger.info('Frida Logs live streaming')
         template = 'dynamic_analysis/android/frida_logs.html'
