@@ -1101,7 +1101,7 @@ $("#proxy").click(function() {
     $("#proxy").html("<i class='fas fa-eye-slash'></i> Unset HTTP(S) Proxy");
     act = "set";
   }
-  action(document.location.origin + '/global_proxy/', {action: act}, function(json) {
+  action(document.location.origin + '/global_proxy/', {action: act, deviceidentifier: '{{ devicecurrentlyinused }}'}, function(json) {
       if (json.message === "set")
         print_status("MobSF Global HTTP(S) interception proxy is applied.");
       else if (json.message === "unset")
@@ -1206,7 +1206,7 @@ $("#run_app").click(function() {
 // Logcat Stream
 $("#logstream").click(function() {
     print_status("Logcat Steaming started.");
-    setTimeout(function(){ window.open(document.location.origin + '/logcat/?package={{ package }}', '_blank');}, 500);   
+    setTimeout(function(){ window.open(document.location.origin + '/logcat/?package={{ package }}&device={{ devicecurrentlyinused }}', '_blank');}, 500);   
     return false;  
 }); 
 
