@@ -161,7 +161,7 @@ textarea:focus {
                            </td>
                             <td align="center"> 
                               <p>
-                                <a class="btn btn-primary disable" onclick="dynamic_loader()" href="{% url "dynamic_analyzer" checksum=hash identifier=device %}?re_install=0&install=0"><i class="fab fa-android"></i> Start Dynamic Analysis</a>
+                                <a class="btn btn-primary disable" onclick="dynamic_loader()" href="{% url "dynamic_analyzer" checksum=hash identifier=device %}?re_install=0&install=0" target="_blank"><i class="fab fa-android"></i> Start Dynamic Analysis</a>
                               </p>
                               <p>
                                 <a class="btn btn-warning disable" onclick="dynamic_loader()" href="{% url "static_scan" checksum=hash %}"><i class="fa fa-download"></i> Pull &amp; Static Analysis</a>

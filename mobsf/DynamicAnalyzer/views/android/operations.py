@@ -290,8 +290,10 @@ def mobsf_ca(request, api=False):
 def global_proxy(request, api=False):
     """Set/unset global proxy."""
     data = {}
+    device = request.POST.get('deviceidentifier')
+    print(device)
     try:
-        env = Environment()
+        env = Environment(device)
         version = env.get_android_version()
         action = request.POST['action']
         if action == 'set':

@@ -376,6 +376,8 @@ def logcat(request, api=False):
     logger.info('Starting Logcat streaming')
     try:
         pkg = request.GET.get('package')
+        device = request.GET.get('device')
+        print(device)
         if pkg:
             if not strict_package_check(pkg):
                 return print_n_send_error_response(
@@ -383,7 +385,7 @@ def logcat(request, api=False):
                     'Invalid package name',
                     api)
             template = 'dynamic_analysis/android/logcat.html'
-            return render(request, template, {'package': pkg})
+            return render(request, template, {'package': pkg, 'device' : device})
         if api:
             app_pkg = request.POST['package']
         else:
@@ -396,12 +398,14 @@ def logcat(request, api=False):
                     api)
             adb = os.environ['MOBSF_ADB']
             g = proc.Group()
-            g.run([adb, 'logcat', app_pkg + ':V', '*:*'])
-
+            print(adb)
+            print(device)
+            g.run([adb, '-s', device, 'logcat', app_pkg + ':V', '*:*'])
             def read_process():
                 while g.is_pending():
                     lines = g.readlines()
                     for _, line in lines:
+                        print(line)
                         yield 'data:{}\n\n'.format(line)
             return StreamingHttpResponse(read_process(),
                                          content_type='text/event-stream')
