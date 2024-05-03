@@ -105,6 +105,7 @@
                   <a href="#" id="logstream" class="btn btn-primary"><i class="fa fa-water"></i> Logcat Stream</a>
                   <a href="{% url 'live_api' %}?hash={{ hash }}&amp;package={{ package }}" id="apimon" target="_blank" class="btn btn-primary" style='display: none'><i class="fa fa-search"></i> Live API Monitor</a>
                   <a href="#" id="stop" class="btn btn-info" role="button" ><i class="fa fa-file-alt"></i> Generate Report</a>
+		  <a href="#" id="myButton" class="btn btn-info" role="button" ><i class="fa fa-file-alt"></i> Generate JSON Report </a>
                 </div>
               </div>
               <!-- /.card-body -->
@@ -1389,6 +1390,49 @@ $("#stop").one( "click", function() {
 });
 
 //end document.ready
+});
+
+document.getElementById("myButton").addEventListener("click", function() {
+// Extracting hash and package from the HTML
+var hash = "{{ hash }}";
+var package = "{{ package }}";
+
+// First command: stop_analysis
+var xhr1 = new XMLHttpRequest();
+var url1 = "http://localhost:8002/api/v1/dynamic/stop_analysis";
+var params1 = "hash=" + hash;
+xhr1.open("POST", url1, true);
+xhr1.setRequestHeader("Authorization", "01197f9d3a30984bd575c4ea5ea4c560b8426d10125d3e0d8149f5be82322cd8");
+xhr1.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+xhr1.onreadystatechange = function() {
+  if(xhr1.readyState == 4 && xhr1.status == 200) {
+      console.log("First command executed successfully");
+      
+      // Second command: report_json
+      var xhr2 = new XMLHttpRequest();
+      var url2 = "http://localhost:8002/api/v1/dynamic/report_json";
+      var params2 = "hash=" + hash;
+      xhr2.open("POST", url2, true);
+      xhr2.setRequestHeader("Authorization", "01197f9d3a30984bd575c4ea5ea4c560b8426d10125d3e0d8149f5be82322cd8");
+      xhr2.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      xhr2.responseType = 'blob'; // Set the response type to blob
+      xhr2.onreadystatechange = function() {
+        if(xhr2.readyState == 4 && xhr2.status == 200) {
+            console.log("Second command executed successfully");
+            var blob = new Blob([xhr2.response], { type: "application/json" });
+            var fileName = package + ".json"; // Specify your filename here
+            var link = document.createElement("a");
+            link.href = window.URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link); // Append the link to the document body
+            link.click(); // Programmatically trigger the click event
+            document.body.removeChild(link); // Remove the link after download
+        }
+      }
+      xhr2.send(params2);
+  }
+}
+xhr1.send(params1);
 });
 </script>
 {% endblock %}
