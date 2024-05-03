@@ -1,7 +1,8 @@
+<h1> Logcat running for package: {{package}}, device: {{device}}</h1>
 <div id="messages"></div>
 <button id="tgl" onclick="toggle()">Stop Streaming</button>
 <script type="text/javascript">
-var source = new EventSource('/logcat/?app_package={{package}}');
+var source = new EventSource('/logcat/?app_package={{package}}&device={{ device }}');
 var i = 0;
 var stream = true;
 var div = document.getElementById("messages");

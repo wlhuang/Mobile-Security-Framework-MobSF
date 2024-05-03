@@ -55,6 +55,13 @@
     #start_activity_form{
         margin-top: 10px;
     }
+    .checkbox-container {
+      max-height: 200px; /* Set maximum height */
+      overflow-y: auto; /* Enable vertical scrollbar */
+      border: 1px solid #ccc; /* Add border */
+      border-radius: 4px; /* Add rounded corners */
+      padding: 10px; /* Add some padding */
+    }
 
 </style>
 
@@ -69,7 +76,7 @@
     <div class="container-fluid">
       <div class="row mb-2">
         <div id="mobsf_header">
-            <h2><strong>Dynamic Analyzer </strong>- {{ package }}</h2>
+            <h2><strong>Dynamic Analyzer </strong>- {{ package }}- {{devicecurrentlyinused}}</h2>
         </div>
       </div>
     </div>
@@ -301,20 +308,19 @@
               <div class="row">
                   <div class="col-12">
 <textarea id="code-js" rows="100">
-Java.perform(function() {
-  // Use send() for logging
-});
+{{text}}
 </textarea>
                   </div>
                   <div class="col-12">
                     <br/>
                     <div class="form-group">
-                      <span class="box-title">Available Scripts (Use CTRL to choose multiple)  </span>
+                      <span class="box-title">Available Scripts (Recommended scripts are highlighted)  </span>
                       <button id="loadscript" type="submit" class="btn btn-primary btn-sm">Load</button>
                     </div>
                     <div class="form-group">
-                         <select id="fd_scs" size="10" multiple="" class="form-control">
-                          </select>
+                      <div id="fd_scs" class="form-group checkbox-container">
+                        <!-- Checkbox options will be appended here -->
+                      </div>            
                     </div>
                   </div>
                 </div>
@@ -575,12 +581,16 @@ function escapeHtml(unsafe){
 }
 
 // Frida load other scripts
-function load_frida_others(){
-  action('{% url 'list_frida_scripts' %}', {device: 'android'}, function(json) {
-    if (json.status==="ok"){
-        json.files.forEach(function(script) {
-          $('#fd_scs').append('<option value=' + escape(script) + '>' + escape(script) + '</option>');
-        });
+function load_frida_others() {
+  action('{% url "list_frida_scripts" %}', { device: 'android' }, function(json) {
+    if (json.status === "ok") {
+      json.files.forEach(function(script) {
+        if ('{{scripts}}'.includes(script)) {
+          $('#fd_scs').append('<label style="background-color: yellow !important;" ><input type="checkbox" name="frida_script" value="' + escape(script) + '" checked> ' + escape(script) + '</label><br>');
+        } else {
+          $('#fd_scs').append('<label><input type="checkbox" name="frida_script" value="' + escape(script) + '"> ' + escape(script) + '</label><br>');
+        }
+      });
     }
   });
 }
@@ -592,16 +602,16 @@ var editor = CodeMirror.fromTextArea(document.getElementById("code-js"), {
     gutters: ["CodeMirror-lint-markers"],
     lint: true,
     lineWrapping: true,
-    onLoad: restore(),
+    // onLoad: restore(),
   });
 
-//Restore Code
-function restore(){
-  var custom_code = window.sessionStorage.getItem("code_android");
-  if (custom_code !== null) {
-    setTimeout(function(){ editor.getDoc().setValue(custom_code); }, 2000);
-  }
-}
+// //Restore Code
+// function restore(){
+//   var custom_code = window.sessionStorage.getItem("code_android");
+//   if (custom_code !== null) {
+//     setTimeout(function(){ editor.getDoc().setValue(custom_code); }, 2000);
+//   }
+// }
 
 // Terminal
 var util = util || {};
@@ -847,7 +857,7 @@ print_status("Start Instrumentation or Run the application and navigate through 
 
 function get_logs(){
       $.ajax({
-        url : '{% url 'frida_logs' %}?hash={{ hash }}&stream=1', 
+        url : '{% url 'frida_logs' %}?hash={{ hash }}&stream=1&deviceIdentifier={{ devicecurrentlyinused }}', 
         type : "GET",
         dataType: "json", 
         success : function(json){ 
@@ -878,7 +888,7 @@ $("#screen").click(function() {
           touch = "on";
           screenfunc = setInterval(function(){
               // Capture Screen
-              action('{% url 'screen_cast' %}', {}, function(json) {
+              action('{% url 'screen_cast'%}', {deviceidentifier: '{{ devicecurrentlyinused }}'}, function(json) {
                 if (json.status == 'ok'){
                   if (screen_width === undefined || screen_height === undefined){
                     // Get Screen Resolution from Image
@@ -1091,7 +1101,7 @@ $("#proxy").click(function() {
     $("#proxy").html("<i class='fas fa-eye-slash'></i> Unset HTTP(S) Proxy");
     act = "set";
   }
-  action(document.location.origin + '/global_proxy/', {action: act}, function(json) {
+  action(document.location.origin + '/global_proxy/', {action: act, deviceidentifier: '{{ devicecurrentlyinused }}'}, function(json) {
       if (json.message === "set")
         print_status("MobSF Global HTTP(S) interception proxy is applied.");
       else if (json.message === "unset")
@@ -1196,20 +1206,25 @@ $("#run_app").click(function() {
 // Logcat Stream
 $("#logstream").click(function() {
     print_status("Logcat Steaming started.");
-    setTimeout(function(){ window.open(document.location.origin + '/logcat/?package={{ package }}', '_blank');}, 500);   
+    setTimeout(function(){ window.open(document.location.origin + '/logcat/?package={{ package }}&device={{ devicecurrentlyinused }}', '_blank');}, 500);   
     return false;  
 }); 
 
 
 // Load Frida Scripts
 $("#loadscript").click(function() {
-   var scripts = $('#fd_scs').val();
-   action('{% url 'get_script' %}', {scripts: scripts, device: 'android'}, function(json) {
-    if (json.status==="ok"){
-        editor.getDoc().setValue(json.content);
-    }
+    var selectedScripts = [];
+  $('input[name="frida_script"]:checked').each(function() {
+      selectedScripts.push($(this).val());
   });
-  return false;  
+  console.log(selectedScripts);
+
+  action('{% url 'get_script' %}', {scripts: selectedScripts, device: 'android'}, function(json) {
+  if (json.status==="ok"){
+      editor.getDoc().setValue(json.content);
+  }
+});
+return false;  
 });
 
 // Frida Spawn, Session and Ps
@@ -1248,6 +1263,7 @@ function frida_instrument(frida_action, pid=null, new_pkg=null){
       print_status("Getting injected frida script.");
     }
     action('{% url 'android_instrument' %}', {
+      deviceidentifier: '{{ devicecurrentlyinused }}',
       frida_action,
       pid, // attach pid
       new_package: new_pkg, // attach package

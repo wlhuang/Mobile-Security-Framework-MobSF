@@ -42,6 +42,46 @@ from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 
 logger = logging.getLogger(__name__)
 
+PERMISSION_GROUPS = {
+    'LOCATION': ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
+    'CAMERA': ['CAMERA'],
+    'STORAGE': ['READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE'],
+}
+
+def map_permissions_to_group(permission):
+    parts = permission.split('.')
+    permission_name = parts[-1]
+    for group, permissions in PERMISSION_GROUPS.items():
+        if permission_name in permissions:
+            return group
+    return None
+
+def cut_string(input_string):
+    index = input_string.find('_')
+    if index != -1:
+        result = input_string[:index]
+        return result
+    else:
+        return input_string
+
+def select_frida_script(permissions):
+    scripts = []
+    for permission in permissions:
+        group = map_permissions_to_group(permission)
+        #print(group)
+        if group:
+            for filename in os.listdir('mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+                if cut_string(filename) == group:
+                    if filename in scripts:
+                        pass
+                    else:
+                        scripts.append(filename)
+    return scripts
+def combine_dicts(*dicts):
+    combined_dict = {}
+    for d in dicts:
+        combined_dict.update(d)
+    return combined_dict
 
 def android_dynamic_analysis(request, api=False):
     """Android Dynamic Analysis Entry point."""
@@ -52,6 +92,7 @@ def android_dynamic_analysis(request, api=False):
         and_sdk = None
         apks = StaticAnalyzerAndroid.objects.filter(
             APP_TYPE='apk')
+        identifier = None
 
         for apk in reversed(apks):
 
@@ -64,37 +105,87 @@ def android_dynamic_analysis(request, api=False):
                 'FILE_NAME': apk.FILE_NAME,
                 'PACKAGE_NAME': apk.PACKAGE_NAME,
                 'DYNAMIC_REPORT_EXISTS': logcat.exists(),
+                'PERMISSIONS': apk.PERMISSIONS
             }
             scan_apps.append(temp_dict)
         try:
-            identifier = get_device()
+            devicesidentified = get_device()
+            #print(devicesidentified)
         except Exception:
             return print_n_send_error_response(
                 request, get_android_dm_exception_msg(), api)
         try:
-            if identifier:
-                env = Environment(identifier)
-                env.connect()
-                device_packages = env.get_device_packages()
-                if device_packages:
-                    pkg_file = Path(settings.DWD_DIR) / 'packages.json'
-                    with pkg_file.open('w', encoding='utf-8') as target:
-                        dump(device_packages, target)
-                and_ver = env.get_android_version()
-                and_sdk = env.get_android_sdk()
+            dicts = []
+            combined = {}
+
+            appsdict = {}
+            identifierdict = {}
+            android_versiondict = {}
+            android_sdkdict = {}
+            android_supporteddict = {}
+            proxy_ipdict = {}
+            proxy_portdict = {}
+            settings_locdict = {}
+            device_packagesdict = {}
+            titledict = {}
+            versiondict = {}
+            for i in range(len(devicesidentified)):
+                identifier = devicesidentified[i-1]
+                if identifier:
+                    env = Environment(identifier)
+                    env.connect()
+                    device_packages = env.get_device_packages()
+                    #print(device_packages)
+                    dicts.append(device_packages)
+                    and_ver = env.get_android_version()
+                    and_sdk = env.get_android_sdk()
+                    appsdict[identifier] = scan_apps
+                    identifierdict[identifier] = identifier
+                    android_versiondict[identifier] = and_ver
+                    android_sdkdict[identifier] = and_sdk
+                    android_supporteddict[identifier] = ANDROID_API_SUPPORTED
+                    proxy_ipdict[identifier] = get_proxy_ip(identifier)
+                    proxy_portdict[identifier] = settings.PROXY_PORT
+                    settings_locdict[identifier] = get_config_loc()
+                    device_packagesdict[identifier] = device_packages
+                    titledict[identifier] = 'MobSF Dynamic Analysis'
+                    versiondict[identifier] = settings.MOBSF_VER
+                    # deviceinformation['apps'] = scan_apps
+                    # deviceinformation['identifier'] = identifier
+                    # deviceinformation['android_version'] = and_ver
+                    # deviceinformation['android_sdk'] = and_sdk
+                    # deviceinformation['android_supported'] = ANDROID_API_SUPPORTED
+                    # deviceinformation['proxy_ip'] = get_proxy_ip(identifier)
+                    # deviceinformation['proxy_port'] = settings.PROXY_PORT
+                    # deviceinformation['settings_loc'] = get_config_loc()
+                    # deviceinformation['device_packages'] = device_packages
+                    # deviceinformation['title'] = 'MobSF Dynamic Analysis'
+                    # deviceinformation['version'] = settings.MOBSF_VER
+                    # context['emulator5556'] = deviceinformation
+
+            for d in dicts:
+                combined.update(d)
+            if combined:
+                pkg_file = Path(settings.DWD_DIR) / 'packages.json'
+                with pkg_file.open('w', encoding='utf-8') as target:
+                    dump(combined, target)
+#                    summarydevicepackages[identifier] = device_packages
+#            print(summarydevicepackages)
         except Exception:
             pass
         context = {'apps': scan_apps,
-                   'identifier': identifier,
-                   'android_version': and_ver,
-                   'android_sdk': and_sdk,
-                   'android_supported': ANDROID_API_SUPPORTED,
-                   'proxy_ip': get_proxy_ip(identifier),
-                   'proxy_port': settings.PROXY_PORT,
-                   'settings_loc': get_config_loc(),
-                   'device_packages': device_packages,
-                   'title': 'MobSF Dynamic Analysis',
-                   'version': settings.MOBSF_VER}
+                    'identifier': identifierdict,
+                    'android_version': android_versiondict,
+                    'android_sdk': android_sdkdict,
+                    'android_supported': ANDROID_API_SUPPORTED,
+                    'proxy_ip': proxy_ipdict,
+                    'proxy_port': proxy_portdict,
+                    'settings_loc': get_config_loc(),
+                    'device_packages': device_packagesdict,
+                    'title': 'MobSF Dynamic Analysis',
+                    'version': settings.MOBSF_VER,
+                    }
+        #print(context)
         if api:
             return context
         template = 'dynamic_analysis/android/dynamic_analysis.html'
@@ -104,12 +195,15 @@ def android_dynamic_analysis(request, api=False):
         return print_n_send_error_response(request, exp, api)
 
 
-def dynamic_analyzer(request, checksum, api=False):
+def dynamic_analyzer(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
     try:
-        identifier = None
+        deviceidentifier = identifier
+        #print(identifier)
         activities = None
         exported_activities = None
+        text = None
+        file_list_without_extension = None
         if api:
             reinstall = request.POST.get('re_install', '1')
             install = request.POST.get('install', '1')
@@ -131,7 +225,8 @@ def dynamic_analyzer(request, checksum, api=False):
                 api)
         logger.info('Creating Dynamic Analysis Environment for %s', package)
         try:
-            identifier = get_device()
+            #identifier = get_device()
+            identifier = deviceidentifier
         except Exception:
             return print_n_send_error_response(
                 request, get_android_dm_exception_msg(), api)
@@ -148,6 +243,39 @@ def dynamic_analyzer(request, checksum, api=False):
             logger.warning(
                 'Failed to get Activities. '
                 'Static Analysis not completed for the app.')
+
+        # Get permissions from the static analyzer results
+        try:
+            static_android_db = StaticAnalyzerAndroid.objects.get(
+                MD5=checksum)
+            permissions = python_list(static_android_db.PERMISSIONS)
+            #print(permissions)
+            permissionlist = []
+            for i in permissions:
+                permissionlist.append(i)
+            #print(permissionlist)
+            selected_script = select_frida_script(permissions) 
+            #print(selected_script)
+            text = '// The suggested Frida scripts for dynamic analysis are: '
+            for scripts in selected_script:
+                text = text + '\n // ' + scripts 
+            for scripts in selected_script:
+                file_path = 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
+                try:
+                    with open(file_path, 'r') as file:
+                            texting = file.read()
+                            text = text + '\n\n' + texting
+                except FileNotFoundError:
+                    print("File not found:", file_path)
+                except Exception as e:
+                    print("Error:", e)
+            file_list_without_extension = [filename.replace('.js', '') for filename in selected_script]
+
+        except ObjectDoesNotExist:
+            logger.warning(
+                'Failed to get Activities. '
+                'Static Analysis not completed for the app.')
+
         env = Environment(identifier)
         if not env.connect_n_mount():
             msg = 'Cannot Connect to ' + identifier
@@ -207,7 +335,10 @@ def dynamic_analyzer(request, checksum, api=False):
                    'version': settings.MOBSF_VER,
                    'activities': activities,
                    'exported_activities': exported_activities,
-                   'title': 'Dynamic Analyzer'}
+                   'title': 'Dynamic Analyzer',
+                   'text': text,
+                   'scripts': file_list_without_extension,
+                   'devicecurrentlyinused': identifier}
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
         if api:
             return context
@@ -245,6 +376,8 @@ def logcat(request, api=False):
     logger.info('Starting Logcat streaming')
     try:
         pkg = request.GET.get('package')
+        device = request.GET.get('device')
+        print(device)
         if pkg:
             if not strict_package_check(pkg):
                 return print_n_send_error_response(
@@ -252,7 +385,7 @@ def logcat(request, api=False):
                     'Invalid package name',
                     api)
             template = 'dynamic_analysis/android/logcat.html'
-            return render(request, template, {'package': pkg})
+            return render(request, template, {'package': pkg, 'device' : device})
         if api:
             app_pkg = request.POST['package']
         else:
@@ -265,12 +398,14 @@ def logcat(request, api=False):
                     api)
             adb = os.environ['MOBSF_ADB']
             g = proc.Group()
-            g.run([adb, 'logcat', app_pkg + ':V', '*:*'])
-
+            print(adb)
+            print(device)
+            g.run([adb, '-s', device, 'logcat', app_pkg + ':V', '*:*'])
             def read_process():
                 while g.is_pending():
                     lines = g.readlines()
                     for _, line in lines:
+                        print(line)
                         yield 'data:{}\n\n'.format(line)
             return StreamingHttpResponse(read_process(),
                                          content_type='text/event-stream')

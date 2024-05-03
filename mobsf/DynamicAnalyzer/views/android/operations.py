@@ -47,6 +47,7 @@ def get_package_name(checksum):
             return None
         with pkg_file.open(encoding='utf-8') as src:
             packages = json.load(src)
+            print(packages)
         if packages.get(checksum):
             return packages[checksum][0]
         return None
@@ -193,7 +194,8 @@ def screen_cast(request):
         'status': 'failed',
         'message': 'Failed to stream screen'}
     try:
-        env = Environment()
+        deviceidentifier = request.POST['deviceidentifier']
+        env = Environment(deviceidentifier)
         b64dat = env.screen_stream()
         data = {
             'status': 'ok',
@@ -288,8 +290,10 @@ def mobsf_ca(request, api=False):
 def global_proxy(request, api=False):
     """Set/unset global proxy."""
     data = {}
+    device = request.POST.get('deviceidentifier')
+    print(device)
     try:
-        env = Environment()
+        env = Environment(device)
         version = env.get_android_version()
         action = request.POST['action']
         if action == 'set':
