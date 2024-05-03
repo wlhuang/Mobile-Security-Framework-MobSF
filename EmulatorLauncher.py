@@ -2,7 +2,7 @@ import subprocess
 import os
 
 def snapshot_retrieve(avd_name):
-    path = "/home/ignatius/.android/avd/"+avd_name+".avd/snapshots"
+    path = "/home/live/.android/avd/"+avd_name+".avd/snapshots"
     os.chdir(path)
     
     ls_command = subprocess.Popen(['ls', '-Art'], stdout=subprocess.PIPE)
@@ -29,7 +29,7 @@ def start_emulator(avd_name):
     subprocess.Popen(emulator_command)
 
 if __name__ == "__main__":
-    avd_name = "Emulator_1"
-    start_emulator(avd_name)
     avd_name = "Emulator_2"
+    start_emulator(avd_name)
+    avd_name = "Emulator_3"
     start_emulator(avd_name)
