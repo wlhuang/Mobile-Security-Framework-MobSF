@@ -1399,10 +1399,10 @@ var package = "{{ package }}";
 
 // First command: stop_analysis
 var xhr1 = new XMLHttpRequest();
-var url1 = "http://localhost:8002/api/v1/dynamic/stop_analysis";
+var url1 = "http://localhost:8000/api/v1/dynamic/stop_analysis";
 var params1 = "hash=" + hash;
 xhr1.open("POST", url1, true);
-xhr1.setRequestHeader("Authorization", "01197f9d3a30984bd575c4ea5ea4c560b8426d10125d3e0d8149f5be82322cd8");
+xhr1.setRequestHeader("Authorization", "b05b8625a34f5a59e357703e571e52c7a8cee3712f0f51b9e7c26f3c7fc88c10");
 xhr1.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 xhr1.onreadystatechange = function() {
   if(xhr1.readyState == 4 && xhr1.status == 200) {
@@ -1410,10 +1410,10 @@ xhr1.onreadystatechange = function() {
       
       // Second command: report_json
       var xhr2 = new XMLHttpRequest();
-      var url2 = "http://localhost:8002/api/v1/dynamic/report_json";
+      var url2 = "http://localhost:8000/api/v1/dynamic/report_json";
       var params2 = "hash=" + hash;
       xhr2.open("POST", url2, true);
-      xhr2.setRequestHeader("Authorization", "01197f9d3a30984bd575c4ea5ea4c560b8426d10125d3e0d8149f5be82322cd8");
+      xhr2.setRequestHeader("Authorization", "b05b8625a34f5a59e357703e571e52c7a8cee3712f0f51b9e7c26f3c7fc88c10");
       xhr2.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
       xhr2.responseType = 'blob'; // Set the response type to blob
       xhr2.onreadystatechange = function() {

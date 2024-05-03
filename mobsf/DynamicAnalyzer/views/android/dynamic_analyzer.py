@@ -99,7 +99,6 @@ def android_dynamic_analysis(request, api=False):
         identifier = None
 
         for apk in reversed(apks):
-            print(apk)
             logcat = Path(settings.UPLD_DIR) / apk.MD5 / 'logcat.txt'
             temp_dict = {
                 'ICON_PATH': apk.ICON_PATH,
@@ -109,7 +108,8 @@ def android_dynamic_analysis(request, api=False):
                 'FILE_NAME': apk.FILE_NAME,
                 'PACKAGE_NAME': apk.PACKAGE_NAME,
                 'DYNAMIC_REPORT_EXISTS': logcat.exists(),
-                'PERMISSIONS': apk.PERMISSIONS
+                'PERMISSIONS': apk.PERMISSIONS,
+                'DEX': apk.APKID
             }
             scan_apps.append(temp_dict)
         try:
@@ -206,8 +206,9 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
         #print(identifier)
         activities = None
         exported_activities = None
-        text = None
-        file_list_without_extension = None
+        textsuggest = ' // The suggested Frida scripts for dynamic analysis are: '
+        textscripts = ' '
+        file_list_without_extension = []
         if api:
             reinstall = request.POST.get('re_install', '1')
             install = request.POST.get('install', '1')
@@ -248,7 +249,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                 'Failed to get Activities. '
                 'Static Analysis not completed for the app.')
 
-        # Get permissions from the static analyzer results
+        # Get permissions and dex from the static analyzer results
         try:
             static_android_db = StaticAnalyzerAndroid.objects.get(
                 MD5=checksum)
@@ -260,15 +261,14 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
             #print(permissionlist)
             selected_script = select_frida_script(permissions) 
             #print(selected_script)
-            text = '// The suggested Frida scripts for dynamic analysis are: '
             for scripts in selected_script:
-                text = text + '\n // ' + scripts 
+                textsuggest = textsuggest + '\n // ' + scripts 
             for scripts in selected_script:
                 file_path = 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
                 try:
                     with open(file_path, 'r') as file:
                             texting = file.read()
-                            text = text + '\n\n' + texting
+                            textscripts = textscripts + '\n\n' + texting
                 except FileNotFoundError:
                     print("File not found:", file_path)
                 except Exception as e:
@@ -279,6 +279,27 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
             logger.warning(
                 'Failed to get Activities. '
                 'Static Analysis not completed for the app.')
+            
+        try:
+            dex = static_android_db.APKID
+            if len(dex) > 0:
+                textsuggest = textsuggest + '\n // ' + 'dex.js'
+                file_path = 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format('dex.js')
+                try:
+                    with open(file_path, 'r') as file:
+                            texting = file.read()
+                            textscripts = textscripts + '\n\n' + texting
+                except FileNotFoundError:
+                    print("File not found:", file_path)
+                except Exception as e:
+                    print("Error:", e)
+                file_list_without_extension.append('dex')
+        except ObjectDoesNotExist:
+            logger.warning(
+                'Failed to get Activities. '
+                'Static Analysis not completed for the app.')
+            
+        text = textsuggest + textscripts
 
         env = Environment(identifier)
         if not env.connect_n_mount():
@@ -333,6 +354,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                     msg,
                     api)
         logger.info('Testing Environment is Ready!')
+        print(file_list_without_extension)
         context = {'package': package,
                    'hash': checksum,
                    'android_version': version,
@@ -349,7 +371,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
         return render(request, template, context)
     except Exception:
         logger.exception('Dynamic Analyzer')
-        return print_n_send_error_response(
+        return print_n_send_error_response(+
             request,
             'Dynamic Analysis Failed.',
             api)
