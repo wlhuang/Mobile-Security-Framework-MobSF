@@ -43,9 +43,9 @@ from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 logger = logging.getLogger(__name__)
 
 PERMISSION_GROUPS = {
-    'LOCATION': ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
-    'CAMERA': ['CAMERA'],
-    'STORAGE': ['READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE'],
+    'LOCATION': ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'ACCESS_BACKGROUND_LOCATION', 'ACCESS_ASSISTED_GPS', 'ACCESS_GPS', 'LOCATION', 'GPS'],
+    'STORAGE': ['READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE', 'MANAGE_EXTERNAL_STORAGE', 'STORAGE'],
+    'COMMUNICATION': ['READ_CONTACTS', 'WRITE_CONTACTS', 'GET_ACCOUNTS', 'CONTACTS', 'READ_CALL_LOG', 'WRITE_CALL_LOG', 'PROCESS_OUTGOING_CALLS', 'CALL']
 }
 
 def map_permissions_to_group(permission):
@@ -54,6 +54,10 @@ def map_permissions_to_group(permission):
     for group, permissions in PERMISSION_GROUPS.items():
         if permission_name in permissions:
             return group
+        else:
+            for items in permissions:
+                if items in permission_name:
+                    return group
     return None
 
 def cut_string(input_string):
@@ -95,7 +99,7 @@ def android_dynamic_analysis(request, api=False):
         identifier = None
 
         for apk in reversed(apks):
-
+            print(apk)
             logcat = Path(settings.UPLD_DIR) / apk.MD5 / 'logcat.txt'
             temp_dict = {
                 'ICON_PATH': apk.ICON_PATH,
