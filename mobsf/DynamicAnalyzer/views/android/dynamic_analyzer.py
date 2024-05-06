@@ -301,6 +301,7 @@ def android_dynamic_analysis(request, api=False):
 
 def dynamic_analyzer(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
+    apiKey = api_key()
     try:
         deviceidentifier = identifier
         #print(identifier)
@@ -478,6 +479,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
         print(file_list_without_extension)
         context = {'package': package,
                    'hash': checksum,
+                   'api_key': apiKey,
                    'android_version': version,
                    'version': settings.MOBSF_VER,
                    'activities': activities,
