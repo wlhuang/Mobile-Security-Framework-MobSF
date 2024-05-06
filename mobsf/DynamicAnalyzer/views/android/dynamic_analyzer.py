@@ -43,11 +43,102 @@ from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 logger = logging.getLogger(__name__)
 
 PERMISSION_GROUPS = {
-    'LOCATION': ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'ACCESS_BACKGROUND_LOCATION', 'ACCESS_ASSISTED_GPS', 'ACCESS_GPS', 'LOCATION', 'GPS'],
-    'STORAGE': ['READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE', 'MANAGE_EXTERNAL_STORAGE', 'STORAGE'],
-    'COMMUNICATION': ['READ_CONTACTS', 'WRITE_CONTACTS', 'GET_ACCOUNTS', 'CONTACTS', 'READ_CALL_LOG', 'WRITE_CALL_LOG', 'PROCESS_OUTGOING_CALLS', 'CALL']
+    'LOCATION': ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'ACCESS_BACKGROUND_LOCATION', 
+                 'ACCESS_ASSISTED_GPS', 'ACCESS_GPS', 'ACCESS_MEDIA_LOCATION', 'ACCESS_LOCATION_EXTRA_COMMANDS', 
+                 'CONTROL_LOCATION_UPDATES', 'INSTALL_LOCATION_PROVIDER', 'LOCATION', 'GPS'],
+
+    'STORAGE': ['READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE', 'MANAGE_EXTERNAL_STORAGE', 'READ_INTERNAL_STORAGE',
+                'WRITE_INTERNAL_STORAGE', 'READ_MEDIA_IMAGES', 'READ_MEDIA_VIDEO', 'READ_MEDIA_IMAGES', 'READ_MEDIA_AUDIO', 
+                'STORAGE'],
+
+    'COMMUNICATION': ['READ_CONTACTS', 'WRITE_CONTACTS', 'GET_ACCOUNTS', 'CONTACTS', 'READ_CALL_LOG', 
+                      'WRITE_CALL_LOG', 'PROCESS_OUTGOING_CALLS', 'CALL', 'WRITE_VOICEMAIL', 'READ_VOICEMAIL', 
+                      'SEND_SMS', 'CALL_PRIVILEGED', 'RECEIVE_SMS', 'SEND_SMS_NO_CONFIRMATION', 'CALL_PHONE'
+                      'USE_SIP', 'RECEIVE_MMS', 'BIND_VISUAL_VOICEMAIL_SERVICE'],
+
+    'MEDIA' : ['CAMERA', 'RECORD_AUDIO'],
+
+    'INTENT' : ['SEND', 'RECEIVE', 'QUERY_ALL_PACKAGES', 'BROADCAST_STICKY'],
+
+    'NETWORK' : ['ACCESS_WIFI_STATE', 'ACCESS_NETWORK_STATE', 'CHANGE_NETWORK_STATE', 'INTERNET', 'CHANGE_WIFI_MULTICAST_STATE'
+                 'CHANGE_WIFI_STATE', 'CHANGE_WIFI_MULTICAST_STATE', 'CONNECTIVITY_INTERNAL', 'READ_NETWORK_USAGE_HISTORY', 'CONTROL_VPN',
+                 'CONNECTIVITY_USE_RESTRICTED_NETWORKS', ' BIND_VPN_SERVICE', 'BIND_TELECOM_CONNECTION_SERVICE', 
+                ],
+
+    'DEVICEDETAILS': ['READ_PHONE_STATE', 'MODIFY_PHONE_STATE', 'READ_PRIVILEGED_PHONE_STATE', 'LOCAL_MAC_ADDRESS'],
+
+    'BLUETOOTH' : ['BLUETOOTH', 'BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT', 'BLUETOOTH_ADMIN', 'BLUETOOTH_PRIVILEGED', 
+                   'PEERS_MAC_ADDRESS'],
+
+    'CAR' : ['CAR_RADIO', 'CAR_CAMERA', 'CAR_HVAC', 'CAR_MOCK_VEHICLE_HAL', 'CAR_NAVIGATION_MANAGER', 'CAR_PROJECTION', 
+             'CONTROL_APP_BLOCKING'],
+    
+    'BATTERY' : ['DEVICE_POWER'],
+
+    'OTHERS' : ['FLASHLIGHT', 'READ_CALENDAR', 'ACCEPT_HANDOVER', 'REQUEST_INSTALL_PACKAGES', 'USE_FULL_SCREEN_INTENT',
+                'POST_NOTIFICATIONS', 'FOREGROUND_SERVICE', 'ACTIVITY_RECOGNITION',
+                'WRITE_GSERVICES', 'WRITE_CALENDAR', 'UNINSTALL_SHORTCUT', 'INSTALL_SHORTCUT', 'SET_ALARM', 'USE_BIOMETRIC',
+                'SET_WALLPAPER', 'GET_TASKS', 'KILL_BACKGROUND_PROCESSES', 'REORDER_TASKS', 'RECEIVE_BOOT_COMPLETED',
+                'DISABLE_KEYGUARD', 'SET_WALLPAPER_HINTS', 'USE_FINGERPRINT', 'TRANSMIT_IR', 'WAKE_LOCK', 'MODIFY_AUDIO_SETTINGS',
+                'LOCATION_HARDWARE', 'UPDATE_DEVICE_STATS', 'TETHER_PRIVILEGED', 'VIBRATE', 'INTERACT_ACROSS_USERS_FULL', 
+                'INTERACT_ACROSS_USERS', 'UPDATE_APP_OPS_STATS', 'GET_APP_OPS_STATS', 'MANAGE_APP_OPS_RESTRICTIONS', 'PACKET_KEEPALIVE_OFFLOAD',
+                'CHANGE_DEVICE_IDLE_TEMP_WHITELIST', 'WRITE_SECURE_SETTINGS', 'MANAGE_DOCUMENTS', 'BIND_WALLPAPER', 'BIND_VR_LISTENER_SERVICE',
+                'BIND_TV_INPUT', 'BIND_TEXT_SERVICE', 'BIND_SCREENING_SERVICE', ''
+                ]
 }
 
+# 54 Android APIs Mapped
+API_GROUPS = {
+    'DEX' : ['Dynamic Class and Dexloading', 'Load and Manipulate Dex Files'],
+
+    'CRYPTOGRAPHY' : ['Crypto', 'Base64 Encode', 'Message Digest', 'Base64 Decode', 'Android Keystore'],
+
+    'STORAGE' : ['Local File I/O Operations',],
+
+    'INTENT' : ['Inter Process Communication', 'Starting Activity', 'Sending Broadcast', 'Starting Service', 
+                'Get Installed Applications'],
+
+    'COMMUNICATION' : ['Query Database of SMS, Contacts etc', 'Send SMS'],
+
+    'LOCATION' : ['Get Cell Location', 'GPS Location'],
+
+    'HIDDENAPP' : ['Hide application icon'],
+
+    'DEVICEDETAILS': ['Get Android Advertising ID', 'Get Network Interface information', 'Get WiFi Details','Get Cell Information', 
+                         'Get Subscriber ID', 'Get Device ID, IMEI,MEID/ESN etc', 'Get Software Version, IMEI/SV etc',
+                         'Get SIM Serial Number', 'Get SIM Provider Details', 'Get SIM Operator Name', 'Get Phone Number', 
+                         'Get Running App Processes', 'Get System Service'],
+
+    'NETWORK' : ['JAR URL Connection', 'HTTPS Connection', 'URL Connection to file/http/https/ftp/jar', 
+                 'WebView POST Request', 'WebView GET Request', 'HTTP Connection', 'HTTP Requests, Connections and Sessions',
+                 'TCP Socket', 'TCP Server Socket', 'UDP Datagram Socket', 'UDP Datagram Packet'],
+
+    'OTHERS' : ['Loading Native Code (Shared Library)', 'Passkeys', 'Certificate Handling', 'JavaScript Interface Methods', 
+                'Set or Read Clipboard data', 'Android Notifications', 'Execute OS Command', 'Java Reflection', 'Content Provider',
+                'Kill Process', 'Obfuscation', 'WebView JavaScript Interface']
+}
+
+PLAYSTOREINFORMATION_GROUPS = {
+    'screenshot-activity.js': ['screenshot', 'screenshots', 'recording screen', 'screen recording'],
+    'sensor-monitoring.js': ['sensor', 'sensors',.........],
+    'media-recorder.js': ['']
+}
+
+def cut_string(input_string):
+    index = input_string.find('_')
+    if index != -1:
+        result = input_string[:index]
+        return result
+    else:
+        return input_string
+
+def combine_dicts(*dicts):
+    combined_dict = {}
+    for d in dicts:
+        combined_dict.update(d)
+    return combined_dict
+
+# Permission Groups
 def map_permissions_to_group(permission):
     parts = permission.split('.')
     permission_name = parts[-1]
@@ -59,14 +150,6 @@ def map_permissions_to_group(permission):
                 if items in permission_name:
                     return group
     return None
-
-def cut_string(input_string):
-    index = input_string.find('_')
-    if index != -1:
-        result = input_string[:index]
-        return result
-    else:
-        return input_string
 
 def select_frida_script(permissions):
     scripts = []
@@ -81,11 +164,28 @@ def select_frida_script(permissions):
                     else:
                         scripts.append(filename)
     return scripts
-def combine_dicts(*dicts):
-    combined_dict = {}
-    for d in dicts:
-        combined_dict.update(d)
-    return combined_dict
+
+# API Groups
+def map_api_to_group(androidapi):
+    for group, androidapis in API_GROUPS.items():
+        if androidapi in androidapis:
+            return group
+    return None
+
+def select_frida_script(androidapis):
+    scripts = []
+    for androidapi in androidapis:
+        group = map_api_to_group(androidapi)
+        #print(group)
+        if group:
+            for filename in os.listdir('mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+                if cut_string(filename) == group:
+                    if filename in scripts:
+                        pass
+                    else:
+                        scripts.append(filename)
+    return scripts
+
 
 def android_dynamic_analysis(request, api=False):
     """Android Dynamic Analysis Entry point."""
@@ -209,6 +309,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
         textsuggest = ' // The suggested Frida scripts for dynamic analysis are: '
         textscripts = ' '
         file_list_without_extension = []
+        selected_script = []
         if api:
             reinstall = request.POST.get('re_install', '1')
             install = request.POST.get('install', '1')
@@ -249,7 +350,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                 'Failed to get Activities. '
                 'Static Analysis not completed for the app.')
 
-        # Get permissions and dex from the static analyzer results
+        # Get permissions from the static analyzer results
         try:
             static_android_db = StaticAnalyzerAndroid.objects.get(
                 MD5=checksum)
@@ -261,8 +362,25 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
             #print(permissionlist)
             selected_script = select_frida_script(permissions) 
             #print(selected_script)
+        except ObjectDoesNotExist:
+            logger.warning(
+                'Failed to get Activities. '
+                'Static Analysis not completed for the app.')
+            
+        try:
+            dex = static_android_db.APKID
+            if len(dex) > 0:
+                if 'DEX_dex.js' not in selected_script:
+                    selected_script.append('DEX_dex.js')
+        except ObjectDoesNotExist:
+            logger.warning(
+                'Failed to get Activities. '
+                'Static Analysis not completed for the app.')
+            
+        try: 
             for scripts in selected_script:
                 textsuggest = textsuggest + '\n // ' + scripts 
+
             for scripts in selected_script:
                 file_path = 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
                 try:
@@ -273,33 +391,11 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                     print("File not found:", file_path)
                 except Exception as e:
                     print("Error:", e)
-            file_list_without_extension = [filename.replace('.js', '') for filename in selected_script]
+                file_list_without_extension = [filename.replace('.js', '') for filename in selected_script]
 
-        except ObjectDoesNotExist:
-            logger.warning(
-                'Failed to get Activities. '
-                'Static Analysis not completed for the app.')
-            
-        try:
-            dex = static_android_db.APKID
-            if len(dex) > 0:
-                textsuggest = textsuggest + '\n // ' + 'dex.js'
-                file_path = 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format('dex.js')
-                try:
-                    with open(file_path, 'r') as file:
-                            texting = file.read()
-                            textscripts = textscripts + '\n\n' + texting
-                except FileNotFoundError:
-                    print("File not found:", file_path)
-                except Exception as e:
-                    print("Error:", e)
-                file_list_without_extension.append('dex')
-        except ObjectDoesNotExist:
-            logger.warning(
-                'Failed to get Activities. '
-                'Static Analysis not completed for the app.')
-            
-        text = textsuggest + textscripts
+            text = textsuggest + textscripts
+        except:
+            pass
 
         env = Environment(identifier)
         if not env.connect_n_mount():
