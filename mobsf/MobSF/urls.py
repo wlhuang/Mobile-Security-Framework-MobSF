@@ -212,6 +212,7 @@ if settings.API_ONLY == '0':
         re_path(r'^scan_library/(?P<checksum>[0-9a-f]{32})$',
                 shared_func.scan_library,
                 name='scan_library'),
+
         # Dynamic Analysis
         re_path(r'^android/dynamic_analysis/$',
                 dz.android_dynamic_analysis,
@@ -229,6 +230,34 @@ if settings.API_ONLY == '0':
         re_path(r'^static_scan/(?P<checksum>[0-9a-f]{32})$',
                 dz.trigger_static_analysis,
                 name='static_scan'),
+
+        # Dynamic Analysis (apps available)
+        re_path(r'^android/dynamic_analysis_appsavailable/$',
+                dz.android_dynamic_analysis_appsavailable,
+                name='dynamic_android_appsavailable'),
+        re_path(r'^android_dynamic_appsavailable/$',
+                dz.dynamic_analyzer_appsavailable,
+                name='dynamic_analyzer_appsavailable'),
+        re_path(r'^android_dynamic_appsavailable/(?P<checksum>[ ]{0})/(?P<identifier>[ ]{0})/$',
+                dz.dynamic_analyzer_appsavailable,
+                name='dynamic_analyzer_appsavailable'),
+        re_path(r'^android_dynamic_appsavailable/(?P<checksum>[0-9a-f]{32})/(?P<identifier>[0-9a-z-]{13})/$',
+                dz.dynamic_analyzer_appsavailable,
+                name='dynamic_analyzer_appsavailable'),
+        re_path(r'^android_dynamic_appsavailable/(?P<checksum>[0-9a-f]{32})/(?P<identifier>[0-9a-zA-Z_-]{10})/$',
+                dz.dynamic_analyzer_appsavailable,
+                name='dynamic_analyzer_appsavailable'),
+        re_path(r'^android_dynamic_appsavailable/(?P<checksum>[0-9a-f]{32})/$',
+                dz.dynamic_analyzer_appsavailable,
+                name='dynamic_analyzer_appsavailable'),
+        # re_path(r'^httptools$',
+        #         dz.httptools_start,
+        #         name='httptools'),
+        # re_path(r'^logcat/$', dz.logcat),
+        # re_path(r'^static_scan/(?P<checksum>[0-9a-f]{32})$',
+        #         dz.trigger_static_analysis,
+        #         name='static_scan'),
+        
         # Android Operations
         re_path(r'^run_apk/$', operations.run_apk),
         re_path(r'^mobsfy/$', operations.mobsfy, name='mobsfy'),
