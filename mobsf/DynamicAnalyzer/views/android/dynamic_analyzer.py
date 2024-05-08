@@ -42,6 +42,7 @@ from mobsf.MobSF.utils import (
 )
 from mobsf.MobSF.views.scanning import add_to_recent_scan
 from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
+from EmulatorLauncher import *
 
 logger = logging.getLogger(__name__)
 
@@ -195,6 +196,21 @@ def get_available_emulators():
     emulator_names = output.strip().split('\n')[1:]  # Exclude the first line
     return emulator_names
 
+def get_emulator_names(emulatorid_list):
+    dict = {}
+    for emulatorid in emulatorid_list:
+        command = ["adb", "-s", emulatorid, "emu", "avd", "name"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        emulator_name = result.stdout.strip().splitlines()[0]
+        dict[emulatorid] = emulator_name
+    return dict
+
+def find_key_by_value(dictionary, value):
+    for key, val in dictionary.items():
+        if val == value:
+            return key
+    return None
+
 def android_dynamic_analysis(request, api=False):
     """Android Dynamic Analysis Entry point."""
     try:
@@ -310,7 +326,7 @@ def android_dynamic_analysis(request, api=False):
 
 def dynamic_analyzer(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
-    apiKey = api_key()
+#    apiKey = api_key()
     try:
         deviceidentifier = identifier
         #print(identifier)
@@ -488,7 +504,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
         print(file_list_without_extension)
         context = {'package': package,
                    'hash': checksum,
-                   'api_key': apiKey,
+#                   'api_key': apiKey,
                    'android_version': version,
                    'version': settings.MOBSF_VER,
                    'activities': activities,
@@ -655,9 +671,14 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
     print(checksum)
     print(identifier)
+    start_emulator(identifier)
+    time.sleep(30)
+    emulatorid_list = get_device()
+    dict = get_emulator_names(emulatorid_list)
     #apiKey = api_key()
-    try:
-        deviceidentifier = identifier
+    try:  
+        value = find_key_by_value(dict, identifier)
+        deviceidentifier = value
         #print(identifier)
         activities = None
         exported_activities = None
@@ -706,42 +727,42 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                 'Static Analysis not completed for the app.')
 
         # Get permissions from the static analyzer results
-        try:
-            static_android_db = StaticAnalyzerAndroid.objects.get(
-                MD5=checksum)
-            permissions = python_list(static_android_db.PERMISSIONS)
-            #print(permissions)
-            permissionlist = []
-            for i in permissions:
-                permissionlist.append(i)
-            #print(permissionlist)
-            selectedscript = select_frida_script_permissions(permissions)
-            if len(selected_script) == 0:
-                selected_script = selectedscript
-            else:
-                selected_script = selected_script + selectedscript
-            #print(selected_script)
-        except ObjectDoesNotExist:
-            logger.warning(
-                'Failed to get Activities. '
-                'Static Analysis not completed for the app.')
+        # try:
+        #     static_android_db = StaticAnalyzerAndroid.objects.get(
+        #         MD5=checksum)
+        #     permissions = python_list(static_android_db.PERMISSIONS)
+        #     #print(permissions)
+        #     permissionlist = []
+        #     for i in permissions:
+        #         permissionlist.append(i)
+        #     #print(permissionlist)
+        #     selectedscript = select_frida_script_permissions(permissions)
+        #     if len(selected_script) == 0:
+        #         selected_script = selectedscript
+        #     else:
+        #         selected_script = selected_script + selectedscript
+        #     #print(selected_script)
+        # except ObjectDoesNotExist:
+        #     logger.warning(
+        #         'Failed to get Activities. '
+        #         'Static Analysis not completed for the app.')
             
-        try:
-            static_android_db = StaticAnalyzerAndroid.objects.get(
-                MD5=checksum)
-            androidapis = eval(static_android_db.ANDROID_API)
-            keys = androidapis.keys()
-            keys_list = list(keys)
-            selectedscript = select_frida_script_androidapis(keys_list)
-            if len(selected_script) == 0:
-                selected_script = selectedscript
-            else:
-                selected_script = selected_script + selectedscript
-            print(selected_script)
-        except ObjectDoesNotExist:
-            logger.warning(
-                'Failed to get Activities. '
-                'Static Analysis not completed for the app.')
+        # try:
+        #     static_android_db = StaticAnalyzerAndroid.objects.get(
+        #         MD5=checksum)
+        #     androidapis = eval(static_android_db.ANDROID_API)
+        #     keys = androidapis.keys()
+        #     keys_list = list(keys)
+        #     selectedscript = select_frida_script_androidapis(keys_list)
+        #     if len(selected_script) == 0:
+        #         selected_script = selectedscript
+        #     else:
+        #         selected_script = selected_script + selectedscript
+        #     print(selected_script)
+        # except ObjectDoesNotExist:
+        #     logger.warning(
+        #         'Failed to get Activities. '
+        #         'Static Analysis not completed for the app.')
             
         try:
             dex = static_android_db.APKID
@@ -833,7 +854,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
         print(file_list_without_extension)
         context = {'package': package,
                    'hash': checksum,
-                   'api_key': apiKey,
+#                   'api_key': apiKey,
                    'android_version': version,
                    'version': settings.MOBSF_VER,
                    'activities': activities,

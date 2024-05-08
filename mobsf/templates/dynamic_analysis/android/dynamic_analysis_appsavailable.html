@@ -44,14 +44,6 @@ textarea:focus {
     outline-width: 0;
 }
 
-/* disable button */
-{% if not identifier %}
-.disable {
-    background-color: #7b7b7b;
-    pointer-events: none;
-    cursor: default;
-}
-{% endif %}
 </style>
 {% endblock %}
 {% block content %}
@@ -94,20 +86,18 @@ textarea:focus {
                                 {{ e.PACKAGE_NAME }}
                            </td>
                            <td>
-                            <select class="form-select" aria-label="Default select example">
-                                <option selected>Select Device to Launch Dynamic Analysis</option>
-                                {% for emulator in emulator_list %}
-                                <option value="{{emulator}}">{{emulator}}</option>
-                                {% endfor %}
-
-                              </select>
-                           </td>
+                            <select id = "selectvalue" class="form-select" aria-label="Default select example">
+                              <option selected>Select Device to Launch Dynamic Analysis</option>
+                              {% for emulator in emulator_list %}
+                              <option value="{{emulator}}">{{emulator}}</option>
+                              {% endfor %}
+                            </select>                           
+                          </td>
                             <td align="center"> 
                               <p>
-                                <a class="btn btn-success disable" onclick="dynamic_loader()" href="{% url "dynamic_analyzer" checksum=e.MD5 %}"><i class="fab fa-android"></i> Start Dynamic Analysis</a>
-                              </p>
+                                <a id="dynamic_analysis_button" class="btn btn-success disable" onclick="dynamic_loader(this)" href="#" data-checksum="{{ e.MD5 }}"><i class="fab fa-android"></i> Start Dynamic Analysis</a>                              </p>
                               <p>
-                                <a class="btn btn-primary btn-sm disable" onclick="dynamic_loader()" href="{% url "dynamic_analyzer" checksum=e.MD5 %}?re_install=0"><i class="fab fa-android"></i> Start Dynamic Analysis (No reinstall)</a>
+                                <a class="btn btn-primary btn-sm " onclick="dynamic_loader()" href="{% url "dynamic_analyzer" checksum=e.MD5 %}?re_install=0"><i class="fab fa-android"></i> Start Dynamic Analysis (No reinstall)</a>
                               </p>
                               <p>
                                  <a class="btn btn-info {% if not e.DYNAMIC_REPORT_EXISTS %}disabled{% endif %}" href="{% url "dynamic_report" checksum=e.MD5 %}"><i class="fa fa-mobile"></i> View Report </a>
@@ -141,17 +131,29 @@ textarea:focus {
 </div>
 {% endblock %}
 {% block extra_scripts %}
+<script>
+  function dynamic_loader(elem) {
+    var selectId = 'selectvalue'
+    var selectElement = document.getElementById(selectId);
+    var selectedValue = selectElement.value;
+    var checksum = elem.getAttribute('data-checksum');
+    var buttonId = elem.id;
+    console.log(selectedValue)
+    console.log(checksum)
+    var urlTemplate = "{% url 'dynamic_analyzer_appsavailable' checksum='checksumvar' identifier='identifiervar' %}";
+    var url = urlTemplate.replace('checksumvar', checksum).replace('identifiervar', selectedValue);
+    document.getElementById(buttonId).setAttribute('href', url);
+    // Optionally, if you want to navigate to the URL immediately after setting it:
+    // window.location.href = url;
+  }
+</script>
+
 <!-- DataTables -->
 <script src="{% static "datatables/js/pdfmake.min.js" %}"></script>
 <script src="{% static "datatables/js/vfs_fonts.js" %}"></script>
 <script src="{% static "datatables/js/datatables.combined.min.js" %}"></script>
 <script src="{% static "others/js/datatables_init.js" %}"></script>
 <script>
-function dynamic_loader(){
-    // var loadingOverlay = document.querySelector('.loading');
-    // loadingOverlay.classList.remove('hidden');
-}
-
 //MobSFy AJAX
  $("#mobsfy").one( "click", function() {
         $('#stat').append("\nMobSFying Android Runtime\n");
