@@ -160,7 +160,7 @@ def select_frida_script_permissions(permissions):
         group = map_permissions_to_group(permission)
         #print(group)
         if group:
-            for filename in os.listdir('mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir('/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -181,7 +181,7 @@ def select_frida_script_androidapis(androidapis):
         group = map_api_to_group(androidapi)
         #print(group)
         if group:
-            for filename in os.listdir('mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir('/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -727,42 +727,42 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                 'Static Analysis not completed for the app.')
 
         # Get permissions from the static analyzer results
-        # try:
-        #     static_android_db = StaticAnalyzerAndroid.objects.get(
-        #         MD5=checksum)
-        #     permissions = python_list(static_android_db.PERMISSIONS)
-        #     #print(permissions)
-        #     permissionlist = []
-        #     for i in permissions:
-        #         permissionlist.append(i)
-        #     #print(permissionlist)
-        #     selectedscript = select_frida_script_permissions(permissions)
-        #     if len(selected_script) == 0:
-        #         selected_script = selectedscript
-        #     else:
-        #         selected_script = selected_script + selectedscript
-        #     #print(selected_script)
-        # except ObjectDoesNotExist:
-        #     logger.warning(
-        #         'Failed to get Activities. '
-        #         'Static Analysis not completed for the app.')
+        try:
+            static_android_db = StaticAnalyzerAndroid.objects.get(
+                MD5=checksum)
+            permissions = python_list(static_android_db.PERMISSIONS)
+            #print(permissions)
+            permissionlist = []
+            for i in permissions:
+                permissionlist.append(i)
+            print(permissionlist)
+            selectedscript = select_frida_script_permissions(permissions)
+            if len(selected_script) == 0:
+                selected_script = selectedscript
+            else:
+                selected_script = selected_script + selectedscript
+            #print(selected_script)
+        except ObjectDoesNotExist:
+            logger.warning(
+                'Failed to get Activities. '
+                'Static Analysis not completed for the app.')
             
-        # try:
-        #     static_android_db = StaticAnalyzerAndroid.objects.get(
-        #         MD5=checksum)
-        #     androidapis = eval(static_android_db.ANDROID_API)
-        #     keys = androidapis.keys()
-        #     keys_list = list(keys)
-        #     selectedscript = select_frida_script_androidapis(keys_list)
-        #     if len(selected_script) == 0:
-        #         selected_script = selectedscript
-        #     else:
-        #         selected_script = selected_script + selectedscript
-        #     print(selected_script)
-        # except ObjectDoesNotExist:
-        #     logger.warning(
-        #         'Failed to get Activities. '
-        #         'Static Analysis not completed for the app.')
+        try:
+            static_android_db = StaticAnalyzerAndroid.objects.get(
+                MD5=checksum)
+            androidapis = eval(static_android_db.ANDROID_API)
+            keys = androidapis.keys()
+            keys_list = list(keys)
+            selectedscript = select_frida_script_androidapis(keys_list)
+            if len(selected_script) == 0:
+                selected_script = selectedscript
+            else:
+                selected_script = selected_script + selectedscript
+            print(selected_script)
+        except ObjectDoesNotExist:
+            logger.warning(
+                'Failed to get Activities. '
+                'Static Analysis not completed for the app.')
             
         try:
             dex = static_android_db.APKID
@@ -783,7 +783,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                 textsuggest = textsuggest + '\n // ' + scripts 
 
             for scripts in selected_script:
-                file_path = 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
+                file_path = '/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
                 try:
                     with open(file_path, 'r') as file:
                             texting = file.read()
