@@ -43,8 +43,12 @@ from mobsf.MobSF.utils import (
 from mobsf.MobSF.views.scanning import add_to_recent_scan
 from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 from EmulatorLauncher import *
+from mobsf.DynamicAnalyzer.views.android.queue import *
 
 logger = logging.getLogger(__name__)
+
+timed_queue = None
+current_live = []
 
 #146 Android Permissions Mapped
 PERMISSION_GROUPS = {
@@ -217,6 +221,19 @@ def find_key_by_value(dictionary, value):
         if val == value:
             return key
     return None
+
+def check_repeated_identifiers(data):
+    identifiers = set()
+    repeated_identifiers = set()
+    
+    for item in data:
+        identifier = item['identifier']
+        if identifier in identifiers:
+            repeated_identifiers.add(identifier)
+        else:
+            identifiers.add(identifier)
+    
+    return repeated_identifiers
 
 def android_dynamic_analysis(request, api=False):
     """Android Dynamic Analysis Entry point."""
@@ -674,8 +691,37 @@ def android_dynamic_analysis_appsavailable(request, api=False):
         logger.exception('Dynamic Analysis Apps Available')
         return print_n_send_error_response(request, exp, api)
 
+def find_position(data, search_item):
+    position = None
+    for i, item in enumerate(data):
+        if item == search_item:
+            position = i
+            break
+    return position
+
 def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
+    itemdata = {'identifier': identifier,'checksum': checksum}
+    
+    global timed_queue
+    if timed_queue is None:
+        timed_queue = TimedQueue(10000)
+        timed_queue.enqueue({'identifier': identifier,'checksum': checksum})
+    else:
+        timed_queue.enqueue({'identifier': identifier,'checksum': checksum})
+    print(timed_queue.get_content())
+
+    print(find_position(timed_queue.get_content(), itemdata))
+    
+    #position = find_position(timed_queue.get_content(), itemdata)
+    #repeated_identifiers = check_repeated_identifiers(timed_queue)
+    if itemdata
+        while find_position(timed_queue.get_content(), itemdata) != 0:
+            print('waiting')
+            time.sleep(1)
+
+    current_live.append(itemdata)
+
     print(checksum)
     print(identifier)
     start_emulator(identifier)
@@ -683,7 +729,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     emulatorid_list = get_device()
     dict = get_emulator_names(emulatorid_list)
     #apiKey = api_key()
-    try:  
+    try:
         value = find_key_by_value(dict, identifier)
         deviceidentifier = value
         #print(identifier)
@@ -871,6 +917,10 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                    'scripts': file_list_without_extension,
                    'devicecurrentlyinused': identifier}
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
+
+        time.sleep(20)
+        timed_queue.dequeue()
+
         if api:
             return context
         return render(request, template, context)

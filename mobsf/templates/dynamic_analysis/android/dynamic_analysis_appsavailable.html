@@ -95,7 +95,7 @@ textarea:focus {
                           </td>
                             <td align="center"> 
                               <p>
-                                <a id="dynamic_analysis_button{{e.MD5}}" class="btn btn-success" onclick="dynamic_loader(this)" href="#" data-checksum="{{ e.MD5 }}"><i class="fab fa-android"></i> Start Dynamic Analysis</a>                              </p>
+                                <a id="dynamic_analysis_button{{e.MD5}}" class="btn btn-success" onclick="dynamic_loader(this)" href="#" data-checksum="{{ e.MD5 }}" target="_blank"><i class="fab fa-android"></i> Start Dynamic Analysis</a>                              </p>
                               <p>
                                 <a class="btn btn-primary btn-sm " onclick="dynamic_loader()" href="{% url "dynamic_analyzer" checksum=e.MD5 %}?re_install=0"><i class="fab fa-android"></i> Start Dynamic Analysis (No reinstall)</a>
                               </p>

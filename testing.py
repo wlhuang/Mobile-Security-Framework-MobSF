@@ -1,11 +1,18 @@
-import subprocess
+def find_position(data, search_item):
+    position = None
+    for i, item in enumerate(data):
+        if item == search_item:
+            position = i
+            break
+    return position
 
-def get_available_emulators():
-    emulator_command = ["emulator", "-list-avds"]
-    process = subprocess.Popen(emulator_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    output, _ = process.communicate()
-    emulator_names = output.strip().split('\n')[1:]  # Exclude the first line
-    return emulator_names
+data = [
+    {'identifier': 'Emulator_2', 'checksum': 'c5d872355e43322f1692288e2c4e6f00'},
+    {'identifier': 'Emulator_3', 'checksum': 'c5d872355e43322f1692288e2c4e6f00'},
+    {'identifier': 'Emulator_2', 'checksum': 'b3b44fcab9b2bcf1d9a9cfe42e8a8bd5'}
+]
 
-emulator_list = get_available_emulators()
-print(emulator_list)
+search_item = {'identifier': 'Emulator_2', 'checksum': 'c5d872355e43322f1692288e2c4e6f00'}
+
+position = find_position(data, search_item)
+print("Position:", position)
