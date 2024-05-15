@@ -1397,11 +1397,12 @@ document.getElementById("myButton").addEventListener("click", function() {
 var hash = "{{ hash }}";
 var package = "{{ package }}";
 var apiKey = "{{ api_key }}";
+var baseURL = window.location.origin
 // var apiKey = "c2929f95781b975382b4d81dff1ff8940961b2664c54da96bbcd062fe9df29d6";
 
 // First command: stop_analysis
 var xhr1 = new XMLHttpRequest();
-var url1 = "http://localhost:8000/api/v1/dynamic/stop_analysis";
+var url1 = baseURL + "/api/v1/dynamic/stop_analysis";
 var params1 = "hash=" + hash;
 xhr1.open("POST", url1, true);
 xhr1.setRequestHeader("Authorization", apiKey);
@@ -1412,7 +1413,7 @@ xhr1.onreadystatechange = function() {
       
       // Second command: report_json
       var xhr2 = new XMLHttpRequest();
-      var url2 = "http://localhost:8000/api/v1/dynamic/report_json";
+      var url2 = baseURL + "/api/v1/dynamic/acube_JSON";
       var params2 = "hash=" + hash;
       xhr2.open("POST", url2, true);
       xhr2.setRequestHeader("Authorization", apiKey);
