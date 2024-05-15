@@ -41,7 +41,7 @@ function hook(intent) {
        }
    }
    text.push("--------------------");
-   console.log(text.join("\n"));
+   send(text.join("\n"));
 }
 function hookGetData() {
    hook(this);
@@ -54,7 +54,7 @@ function hookGetIntent() {
 }
 setTimeout(function() {
    Java.perform(function() {
-       console.log("");
+       send("");
        var Intent = Java.use("android.content.Intent");
        Intent.getData.implementation = hookGetData;
        var Activity = Java.use("android.app.Activity");
