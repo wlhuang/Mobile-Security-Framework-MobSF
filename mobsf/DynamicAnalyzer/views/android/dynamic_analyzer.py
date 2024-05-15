@@ -699,6 +699,13 @@ def find_position(data, search_item):
             break
     return position
 
+def check_identifiers(data, currentlive):
+    data_identifier = data[0]['identifier']
+    for item in currentlive:
+        if item['identifier'] == data_identifier:
+            return item
+    return None
+
 def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
     itemdata = {'identifier': identifier,'checksum': checksum}
@@ -715,10 +722,10 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     
     #position = find_position(timed_queue.get_content(), itemdata)
     #repeated_identifiers = check_repeated_identifiers(timed_queue)
-    if itemdata
-        while find_position(timed_queue.get_content(), itemdata) != 0:
-            print('waiting')
-            time.sleep(1)
+
+    while find_position(timed_queue.get_content(), itemdata) != 0 or check_identifiers(timed_queue.get_content(), current_live):
+        print('waiting')
+        time.sleep(1)
 
     current_live.append(itemdata)
 
@@ -918,13 +925,13 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                    'devicecurrentlyinused': identifier}
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
 
-        time.sleep(20)
         timed_queue.dequeue()
 
         if api:
             return context
         return render(request, template, context)
     except Exception:
+        timed_queue.dequeue()
         logger.exception('Dynamic Analyzer')
         return print_n_send_error_response(+
             request,
