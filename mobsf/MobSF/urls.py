@@ -70,6 +70,7 @@ urlpatterns = [
     re_path(r'^api/v1/dynamic/start_analysis$', api_dz.api_start_analysis),
     re_path(r'^api/v1/dynamic/stop_analysis$', api_dz.api_stop_analysis),
     re_path(r'^api/v1/dynamic/report_json$', api_dz.api_dynamic_report),
+    re_path(r'^api/v1/dynamic/acube_JSON$', api_dz.api_dynamic_report),
     # Android Specific
     re_path(r'^api/v1/android/logcat$', api_dz.api_logcat),
     re_path(r'^api/v1/android/mobsfy$', api_dz.api_mobsfy),
