@@ -47,8 +47,8 @@ from mobsf.DynamicAnalyzer.views.android.queue import *
 
 logger = logging.getLogger(__name__)
 
-timed_queue = None
-current_live = []
+analysis_queue = None
+current_live = [{'identifier': 'TESTINGDATA', 'checksum': 'TESTINGDATA'}]
 
 #146 Android Permissions Mapped
 PERMISSION_GROUPS = {
@@ -703,31 +703,72 @@ def check_identifiers(data, currentlive):
     data_identifier = data[0]['identifier']
     for item in currentlive:
         if item['identifier'] == data_identifier:
-            return item
+            return data[0]
     return None
+
+# def move_to_last(data, target_dict):
+#     for item in data:
+#         if item == target_dict:
+#             data.remove(item)
+#             data.append(item)
+#             break
+#     return data
 
 def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
     itemdata = {'identifier': identifier,'checksum': checksum}
     
-    global timed_queue
-    if timed_queue is None:
-        timed_queue = TimedQueue(10000)
-        timed_queue.enqueue({'identifier': identifier,'checksum': checksum})
+    global analysis_queue
+    global current_live
+    if analysis_queue is None:
+        analysis_queue = Queue()
+        analysis_queue.enqueue({'identifier': identifier,'checksum': checksum})
     else:
-        timed_queue.enqueue({'identifier': identifier,'checksum': checksum})
-    print(timed_queue.get_content())
+        analysis_queue.enqueue({'identifier': identifier,'checksum': checksum})
+    print(analysis_queue.get_content())
 
-    print(find_position(timed_queue.get_content(), itemdata))
+    print(find_position(analysis_queue.get_content(), itemdata))
     
-    #position = find_position(timed_queue.get_content(), itemdata)
-    #repeated_identifiers = check_repeated_identifiers(timed_queue)
+    #position = find_position(analysis_queue.get_content(), itemdata)
+    #repeated_identifiers = check_repeated_identifiers(analysis_queue)
 
-    while find_position(timed_queue.get_content(), itemdata) != 0 or check_identifiers(timed_queue.get_content(), current_live):
-        print('waiting')
+    print(current_live)
+    print(analysis_queue.get_content())
+    print(current_live)
+    print(analysis_queue.get_content())
+    print(current_live)
+    print(analysis_queue.get_content())
+    print(current_live)
+
+    # while find_position(analysis_queue.get_content(), itemdata) != 0:
+    #     print('waiting')
+    #     time.sleep(1)
+
+    # if len(current_live) != 0:
+    #     while check_identifiers(analysis_queue.get_content(), current_live):
+    #         thingtomove = check_identifiers(analysis_queue.get_content(), current_live)
+    #         analysis_queue.move_to_last(thingtomove)
+    #         print(analysis_queue.get_content())
+    #         print(analysis_queue.get_content())
+    #         print(analysis_queue.get_content())    
+
+    while find_position(analysis_queue.get_content(), itemdata) != 0 or check_identifiers(analysis_queue.get_content(), current_live):
+        var = check_identifiers(analysis_queue.get_content(), current_live)
+        if var != None:
+            print(var)
+            analysis_queue.move_to_last(var)
+        print(current_live)
+        print(analysis_queue.get_content())
+        # print('waiting')
         time.sleep(1)
 
-    current_live.append(itemdata)
+    # if len(current_live) != 0:
+    #     while check_identifiers(analysis_queue.get_content(), current_live):
+    #         thingtomove = check_identifiers(analysis_queue.get_content(), current_live)
+    #         analysis_queue.move_to_last(thingtomove)
+    #         print(analysis_queue.get_content())
+    #         print(analysis_queue.get_content())
+    #         print(analysis_queue.get_content())    
 
     print(checksum)
     print(identifier)
@@ -925,13 +966,14 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                    'devicecurrentlyinused': identifier}
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
 
-        timed_queue.dequeue()
+        analysis_queue.dequeue()
+        current_live.append(itemdata)
 
         if api:
             return context
         return render(request, template, context)
     except Exception:
-        timed_queue.dequeue()
+        analysis_queue.dequeue()
         logger.exception('Dynamic Analyzer')
         return print_n_send_error_response(+
             request,
