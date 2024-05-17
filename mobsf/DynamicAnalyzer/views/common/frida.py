@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # AJAX
 
 
-def run_frida_script(request):
+def get_frida_output(request):
     if request.method == 'POST':
         hash_value = request.POST.get('hash')
 
