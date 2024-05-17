@@ -1,24 +1,28 @@
-def combine_dicts(*dicts):
-    combined_dict = {}
-    for d in dicts:
-        combined_dict.update(d)
-    return combined_dict
+data1 = [{'identifier': 'Emulator_1', 'checksum': '536a67e11b59d27755241b90be29b44b'},{'identifier': 'Emulator_2', 'checksum': 'c5d872355e43322f1692288e2c4e6f00'}, {'identifier': 'Emulator_3', 'checksum': '536a67e11b59d27755241b90be29b44b'}]
 
-dicts = [
-    {
-        'e926f4a430b18c98eed9a6a5208f1cf6': ('com.joeykrim.rootcheck', '/data/app/com.joeykrim.rootcheck-DFH-NOakigWc2YlFs7hwWA==/base.apk'),
-        'f48b649cff4ed0d70439acb6dd5132a7': ('com.metasploit.stage', '/data/app/com.metasploit.stage-LI5GvVgvVNcEgPtLK5otjg==/base.apk')
-    },
-    {
-        'f8fe23cdab84a446affadc835288d3f9': ('com.joeykrim.rootcheck', '/data/app/com.joeykrim.rootcheck-sDV4WgNrVwZJyejJvhdMuQ==/base.apk')
-    },
-    {
-        'a_unique_key': ('com.example.app', '/data/app/com.example.app/base.apk')
-    }
-]
+data2 = [{'identifier': 'Emulator_3', 'checksum': '536a67e11b59d27755241b90be29b44b'}, {'identifier': 'Emulator_2', 'checksum': 'c5d872355e43322f1692288e2c4e6f00'}, {'identifier': 'Emulator_3', 'checksum': '536a67e11b59d27755241b90be29b44b'}]
 
-combined = {}
-for d in dicts:
-    combined.update(d)
 
-print(combined)
+def check_identifiers(data, currentlive):
+    data_identifier = data[0]['identifier']
+    print(data_identifier)
+    for item in currentlive:
+        if item['identifier'] == data_identifier:
+            return item
+    return None
+
+print(check_identifiers(data2, data1))
+
+
+# def move_to_last(data, target_dict):
+#     for item in data:
+#         if item == target_dict:
+#             data.remove(item)
+#             data.append(item)
+#             break
+#     return data
+
+# if len(data1) != 0:
+#     while check_identifiers(data2, data1):
+#         thingtomove = check_identifiers(data2, data1)
+#         print(data2.move_to_last(thingtomove))
