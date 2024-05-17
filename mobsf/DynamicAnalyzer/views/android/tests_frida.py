@@ -4,8 +4,12 @@ import base64
 import os
 import re
 import json
+import threading
+import time
+import subprocess
+import signal
 from pathlib import Path
-from threading import Thread
+from threading import Thread, Timer
 import logging
 
 from django.shortcuts import render
@@ -27,11 +31,70 @@ from mobsf.MobSF.utils import (
     print_n_send_error_response,
     strict_package_check,
 )
-
+from mobsf.MobSF.views.home import (
+    dynamic_analysis,
+)
 logger = logging.getLogger(__name__)
+
+_FPID = "/system/fd_server"
 
 # AJAX
 
+# Define a function to terminate the analysis process
+def terminate_analysis(request):
+    """Terminate the analysis process."""
+    kill_frida_process()
+    kill_avd()
+
+# Define a function to kill the Frida process
+def kill_frida_process():
+    """Kill the Frida server process on the Android emulator."""
+    try:
+        # Use adb to find the PID of the Frida server process
+        pid_command = subprocess.run(["adb", "shell", "pidof", _FPID], capture_output=True, text=True)
+        
+        if pid_command.returncode == 0:
+            pid = pid_command.stdout.strip()
+            # Kill the Frida server process
+            subprocess.run(["adb", "shell", "kill", pid], check=False)
+            logger.info("Frida server process killed successfully due to timeout.")
+        else :
+            if b'fd_server' not in check:
+                logger.info('Frida Server is already killed')
+            else:
+                logger.error("Frida server process not found.")
+    except Frida:
+        logger.warning('Frida server is not running')
+        self.spawn()
+    except Exception as e:
+        logger.error("Error while killing Frida server process: {}".format(e))
+
+# Define a function to restart a new AVD with a golden image
+def kill_avd():
+    """Kill AVD"""
+    try:
+        # Find the PID of the emulator using pgrep
+        pid_output = subprocess.run(["pgrep", "-f", "avd"], capture_output=True, text=True, check=True).stdout.strip()
+        
+        if pid_output:
+            emulator_pid = pid_output
+            logger.info(f"The PID of the emulator process found is: {emulator_pid}")
+
+            try:
+                # Kill the emulator process using -15 (SIGTERM)
+                kill_emulator = subprocess.run(["kill", "-15", emulator_pid], capture_output=True, text=True, check=True)
+                logger.info("Killing the emulator with PID: %s", emulator_pid)
+            except subprocess.CalledProcessError as e:
+                logger.error("Failed to kill the emulator process.")
+        else:
+            logger.info("No emulator process is found")
+    except subprocess.CalledProcessError as e:
+        logger.error("Failed to find the emulator process PID.")
+    except Exception as excep:
+        logger.error('Error restarting AVD')
+        msg = str(excep)
+        exp = excep.__doc__
+        return print_n_send_error_response(request, msg, exp)
 
 @require_http_methods(['POST'])
 def get_runtime_dependencies(request, api=False):
@@ -63,6 +126,11 @@ def instrument(request, api=False):
         'status': 'failed',
         'message': 'Failed to instrument app'}
     try:
+        time = Timer(100, terminate_analysis, args=[request], kwargs=None)  # Adjust timeout value as needed
+
+        # Start the timer
+        time.start()
+
         action = request.POST.get('frida_action', 'spawn')
         pid = request.POST.get('pid')
         new_pkg = request.POST.get('new_package')
