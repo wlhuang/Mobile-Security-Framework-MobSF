@@ -18,10 +18,36 @@ from mobsf.MobSF.utils import (
     print_n_send_error_response,
 )
 
+import os
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.conf import settings
+
 
 logger = logging.getLogger(__name__)
 
 
+# AJAX
+
+
+def run_frida_script(request):
+    if request.method == 'POST':
+        hash_value = request.POST.get('hash')
+
+        # Use the frida_logs variable instead of constructing the path again
+        frida_logs = os.path.join(settings.UPLD_DIR, hash_value, 'mobsf_frida_out.txt')
+
+        if os.path.exists(frida_logs):
+            with open(frida_logs, 'rb') as f:
+                file_data = f.read()
+
+            response = HttpResponse(file_data, content_type='text/plain')
+            response['Content-Disposition'] = 'attachment; filename="mobsf_frida_out.txt"'
+            return response
+        else:
+            return HttpResponse("File not found.")
+    else:
+        return HttpResponse("Method not allowed.")
 # AJAX
 
 
