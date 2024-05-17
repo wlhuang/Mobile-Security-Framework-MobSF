@@ -4,6 +4,10 @@
 import logging
 import os
 import shutil
+import signal
+import time
+import threading
+from threading import *
 from pathlib import Path
 
 import mobsf.MalwareAnalyzer.views.Trackers as Trackers
@@ -17,7 +21,7 @@ from mobsf.MalwareAnalyzer.views.MalwareDomainCheck import MalwareDomainCheck
 
 from django.conf import settings
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.template.defaulttags import register
 
 from mobsf.MobSF.utils import (
@@ -91,7 +95,6 @@ from mobsf.StaticAnalyzer.views.common.appsec import (
     get_android_dashboard,
 )
 
-
 logger = logging.getLogger(__name__)
 
 register.filter('key', key)
@@ -99,10 +102,25 @@ register.filter('android_component', android_component)
 register.filter('relative_path', relative_path)
 
 
+class TimeoutException(Exception):
+    pass
+
+def timeout_func(request):
+    logger.error("Static analysis terminated due to time limit")
+    logger.warning("Reload page to redo the analysis")
+    os.kill(os.getpid(), signal.SIGKILL)
+    
 def static_analyzer(request, checksum, api=False):
     """Do static analysis on an request and save to db."""
     try:
+         # Create a Timer object with the desired timeout value
+        t = Timer(2510, timeout_func, args=[request], kwargs=None)  # Adjust timeout value as needed
+
+        # Start the timer
+        t.start()
+
         rescan = False
+        
         if api:
             re_scan = request.POST.get('re_scan', 0)
         else:
@@ -183,7 +201,7 @@ def static_analyzer(request, checksum, api=False):
                         'APK file is invalid or corrupt',
                         api)
                 app_dic['certz'] = get_hardcoded_cert_keystore(app_dic[
-                                                               'files'])
+                                                                'files'])
                 # Manifest XML
                 mani_file, ns, mani_xml = get_manifest(
                     app_dic['app_path'],
@@ -249,7 +267,7 @@ def static_analyzer(request, checksum, api=False):
                 tracker_res = tracker.get_trackers()
 
                 apk_2_java(app_dic['app_path'], app_dic['app_dir'],
-                           app_dic['tools_dir'])
+                            app_dic['tools_dir'])
 
                 dex_2_smali(app_dic['app_dir'], app_dic['tools_dir'])
 
@@ -485,8 +503,18 @@ def static_analyzer(request, checksum, api=False):
                 return render(request, template, context)
         else:
             err = ('Only APK, JAR, AAR, SO and Zipped '
-                   'Android/iOS Source code supported now!')
+                'Android/iOS Source code supported now!')
             logger.error(err)
+
+        t.cancel()
+
+    except TimeoutException:
+        # Handle timeout exception by redirecting to error page
+        logger.error("Analysis process timed out")
+        exp = "An error occurred due to a timeout."
+        msg = "Analysis has exceeded the time limit."
+        return print_n_send_error_response(request, msg, api, exp)
+        
     except Exception as excep:
         logger.exception('Error Performing Static Analysis')
         msg = str(excep)
