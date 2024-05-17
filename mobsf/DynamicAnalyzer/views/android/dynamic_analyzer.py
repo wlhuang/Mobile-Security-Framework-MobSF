@@ -48,6 +48,7 @@ from mobsf.DynamicAnalyzer.views.android.queue import *
 logger = logging.getLogger(__name__)
 
 analysis_queue = None
+queue_display = None
 current_live = [{'identifier': 'TESTINGDATA', 'checksum': 'TESTINGDATA'}]
 
 #146 Android Permissions Mapped
@@ -336,7 +337,7 @@ def android_dynamic_analysis(request, api=False):
                     'settings_loc': get_config_loc(),
                     'device_packages': device_packagesdict,
                     'title': 'MobSF Dynamic Analysis',
-                    'version': settings.MOBSF_VER,
+                    'version': settings.MOBSF_VER
                     }
         #print(context)
         if api:
@@ -677,11 +678,15 @@ def android_dynamic_analysis_appsavailable(request, api=False):
                 'ANDROIDAPI': apk.ANDROID_API
             }
             scan_apps.append(temp_dict)
-
+        if queue_display != None:
+            displaystuff = queue_display.get_content()
+        else:
+            displaystuff = []
         context = {'apps': scan_apps,
                     'title': 'MobSF Dynamic Analysis',
                     'version': settings.MOBSF_VER,
-                    'emulator_list': emulator_list
+                    'emulator_list': emulator_list,
+                    'queuedisplay': displaystuff
                     }
         if api:
             return context
@@ -719,12 +724,16 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     itemdata = {'identifier': identifier,'checksum': checksum}
     
     global analysis_queue
+    global queue_display
     global current_live
     if analysis_queue is None:
         analysis_queue = Queue()
+        queue_display = Queue()
         analysis_queue.enqueue({'identifier': identifier,'checksum': checksum})
+        queue_display.enqueue({'identifier': identifier,'checksum': checksum, 'status':'PENDING'})
     else:
         analysis_queue.enqueue({'identifier': identifier,'checksum': checksum})
+        queue_display.enqueue({'identifier': identifier,'checksum': checksum, 'status':'PENDING'})
     print(analysis_queue.get_content())
 
     print(find_position(analysis_queue.get_content(), itemdata))
@@ -769,14 +778,17 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     #         print(analysis_queue.get_content())
     #         print(analysis_queue.get_content())
     #         print(analysis_queue.get_content())    
-
-    print(checksum)
-    print(identifier)
-    start_emulator(identifier)
-    time.sleep(30)
-    emulatorid_list = get_device()
-    dict = get_emulator_names(emulatorid_list)
-    #apiKey = api_key()
+    try:
+        print(checksum)
+        print(identifier)
+        start_emulator(identifier)
+        time.sleep(30)
+        emulatorid_list = get_device()
+        dict = get_emulator_names(emulatorid_list)
+        #apiKey = api_key()
+    except:
+        print('error, removing it from queue')
+        analysis_queue.dequeue()
     try:
         value = find_key_by_value(dict, identifier)
         deviceidentifier = value
@@ -963,7 +975,8 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                    'title': 'Dynamic Analyzer',
                    'text': text,
                    'scripts': file_list_without_extension,
-                   'devicecurrentlyinused': identifier}
+                   'devicecurrentlyinused': identifier
+                   }
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
 
         analysis_queue.dequeue()

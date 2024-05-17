@@ -111,6 +111,56 @@ textarea:focus {
             </div>
               </div>
               <!-- /.card-body -->
+
+
+              <div class="card-body">
+                <div class="table-responsive">
+             </br>
+                 <h4> Dynamic Analysis Queue</h4>
+               <table class="table table-bordered table-hover table-striped">
+                   <thead>
+                   <tr>
+                       <th>APP</th>
+                       <th>FILE NAME</th>
+                       <th>PACKAGE</th>
+                       <th>DEVICE ASSIGNED</th>
+                       <th>STATUS</th>
+                   </tr>
+                   </tr>
+                   </thead>
+                   <tbody>
+                    {% for queue in queuedisplay %}
+                    {% if apps %}
+                    {% for e in apps %}
+                      {% if queue.checksum == e.MD5 %}
+                        <tr>
+                            <td align="center">
+                              <img id="app_icon" src="{% if e.ICON_PATH %}/download/{{ e.ICON_PATH }}{% else %}{% static 'img/no_icon.png' %}{% endif %}"/>
+                              <br/><strong>{{ e.APP_NAME }} - {{ e.VERSION_NAME }}</strong>
+                            </td>
+                            <td>
+                                {{ e.FILE_NAME }}
+                            </td>
+                            <td>
+                                {{ e.PACKAGE_NAME }}
+                            </td>
+                            <td>
+                              {{ queue.identifier }}                        
+                          </td>
+                          <td>
+                            {{ queue.status }}                        
+                        </td>
+                        </tr>
+                      {% endif %}
+                    {% endfor %}
+                    {% endif %}
+                    {% endfor %}
+                   </tbody>
+               </table>
+           </div>
+             </div>
+
+
             </div>
             <!-- /.card -->
           </div>
