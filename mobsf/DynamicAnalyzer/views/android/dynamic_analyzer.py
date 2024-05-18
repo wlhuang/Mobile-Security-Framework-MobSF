@@ -763,6 +763,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     #         print(analysis_queue.get_content())    
 
     while find_position(analysis_queue.get_content(), itemdata) != 0 or check_identifiers(analysis_queue.get_content(), current_live):
+        time.sleep(2)
         var = check_identifiers(analysis_queue.get_content(), current_live)
         if var != None:
             print(var)
@@ -980,8 +981,8 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                    }
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
 
-        analysis_queue.dequeue()
         current_live.append(itemdata)
+        analysis_queue.dequeue()
 
         if api:
             return context
