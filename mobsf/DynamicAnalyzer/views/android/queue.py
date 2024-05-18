@@ -12,8 +12,10 @@ class Queue:
         self.__qlist.append(item)
     
     def dequeue(self):
-        assert not self.isEmpty(), "Queue is empty"
-        return self.__qlist.pop(0)
+        if len(self.__qlist) != 0:
+            return self.__qlist.pop(0)
+        else:
+            pass
 
     def move_to_last(self, item):
         if item in self.__qlist:
