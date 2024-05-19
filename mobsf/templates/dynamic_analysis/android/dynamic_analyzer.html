@@ -589,12 +589,25 @@ function escapeHtml(unsafe){
 function load_frida_others() {
   action('{% url "list_frida_scripts" %}', { device: 'android' }, function(json) {
     if (json.status === "ok") {
+      let highlightedScripts = [];
+      let nonHighlightedScripts = [];
+      
       json.files.forEach(function(script) {
         if ('{{scripts}}'.includes(script)) {
-          $('#fd_scs').append('<label style="background-color: yellow !important;" ><input type="checkbox" name="frida_script" value="' + escape(script) + '" checked> ' + escape(script) + '</label><br>');
+          highlightedScripts.push('<label style="background-color: yellow !important;"><input type="checkbox" name="frida_script" value="' + escape(script) + '" checked> ' + escape(script) + '</label><br>');
         } else {
-          $('#fd_scs').append('<label><input type="checkbox" name="frida_script" value="' + escape(script) + '"> ' + escape(script) + '</label><br>');
+          nonHighlightedScripts.push('<label><input type="checkbox" name="frida_script" value="' + escape(script) + '"> ' + escape(script) + '</label><br>');
         }
+      });
+
+      // Append highlighted scripts first
+      highlightedScripts.forEach(function(label) {
+        $('#fd_scs').append(label);
+      });
+
+      // Append non-highlighted scripts after
+      nonHighlightedScripts.forEach(function(label) {
+        $('#fd_scs').append(label);
       });
     }
   });

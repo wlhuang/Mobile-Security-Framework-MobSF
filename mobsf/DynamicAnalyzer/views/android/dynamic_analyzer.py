@@ -1,6 +1,5 @@
 # -*- coding: utf_8 -*-
 
-#work done on part 2b
 """Android Dynamic Analysis."""
 import logging
 import os
@@ -38,6 +37,7 @@ from mobsf.MobSF.utils import (
     is_md5,
     print_n_send_error_response,
     python_list,
+    python_dict,
     strict_package_check,
     api_key,
 )
@@ -51,6 +51,10 @@ logger = logging.getLogger(__name__)
 analysis_queue = None
 queue_display = None
 current_live = [{'identifier': 'TESTINGDATA', 'checksum': 'TESTINGDATA'}]
+
+
+
+
 
 #146 Android Permissions Mapped
 PERMISSION_GROUPS = {
@@ -134,11 +138,49 @@ API_GROUPS = {
                'api_kill_process', 'api_obfuscation', 'api_webview']
 }
 
-# PLAYSTOREINFORMATION_GROUPS = {
-#     'screenshot-activity.js': ['screenshot', 'screenshots', 'recording screen', 'screen recording'],
-#     'sensor-monitoring.js': ['sensor', 'sensors',.........],
-#     'media-recorder.js': ['']
-# }
+#Playstore Information Keywords Mapped
+PLAYSTOREINFORMATION_GROUPS = {
+    'MEDIA_screenshot-activity.js': [
+        'screenshot', 'screenshots', 'recording screen', 'screen recording',
+        'capture screen', 'screen capture', 'screen grab', 'screen shot',
+        'screen recorder', 'snapshot', 'screen video', 'record screen activity',
+        'screen snapshot', 'screen video recording', 'screen capture tool',
+        'screen recorder app'
+    ],
+
+    'LOCATION_sensor-monitor.js': [
+        'sensor', 'sensors', 'sensor data', 'sensor monitoring', 'sensor tracker',
+        'sensor detection', 'motion sensor', 'environmental sensor', 'sensor reading',
+        'sensor activity', 'proximity sensor', 'sensor alert', 'sensor status'
+    ],
+
+    'MEDIA_media-recorder.js': [
+        'media recording', 'audio recording', 'video recording',
+        'record media', 'record audio', 'record video', 'media recorder',
+        'recording app', 'audio recorder', 'video recorder', 'media capture',
+        'capture audio', 'capture video', 'record media activity'
+    ],
+
+    'LOCATION_location-accessed.js': [
+        'location', 'location access', 'location tracking',
+        'GPS', 'location services', 'track location', 'access location',
+        'location data', 'geolocation', 'location monitoring', 'location detection',
+        'location usage', 'location request', 'location activity', 'location tracker',
+        'access GPS', 'GPS tracking', 'location app'
+    ],
+
+    'COMMUNICATION_local-data.js': [
+    'contacts', 'call logs', 'SMS', 'text messages', 'call history',
+    'phone contacts', 'contact list', 'message logs', 'call data',
+    'text logs', 'communication data', 'call records', 'message history',
+    'contact information', 'contact data', 'call log access', 'message access',
+    'phone log', 'SMS records', 'communication history'
+    ]
+}
+
+
+
+
 
 def cut_string(input_string):
     index = input_string.find('_')
@@ -154,7 +196,6 @@ def combine_dicts(*dicts):
         combined_dict.update(d)
     return combined_dict
 
-# Permission Groups
 def map_permissions_to_group(permission):
     parts = permission.split('.')
     permission_name = parts[-1]
@@ -173,7 +214,7 @@ def select_frida_script_permissions(permissions):
         group = map_permissions_to_group(permission)
         #print(group)
         if group:
-            for filename in os.listdir('/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir('/home/dylan/Desktop/Mobile-Security-Framework-MobSF-1/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -194,7 +235,7 @@ def select_frida_script_androidapis(androidapis):
         group = map_api_to_group(androidapi)
         #print(group)
         if group:
-            for filename in os.listdir('/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir('/home/dylan/Desktop/Mobile-Security-Framework-MobSF-1/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -236,6 +277,43 @@ def check_repeated_identifiers(data):
             identifiers.add(identifier)
     
     return repeated_identifiers
+
+def find_position(data, search_item):
+    position = None
+    for i, item in enumerate(data):
+        if item == search_item:
+            position = i
+            break
+    return position
+
+def check_identifiers(data, currentlive):
+    data_identifier = data[0]['identifier']
+    for item in currentlive:
+        if item['identifier'] == data_identifier:
+            return data[0]
+    return None
+
+def remove_by_identifier(identifier):
+    global current_live
+    current_live = [item for item in current_live if item['identifier'] != identifier]
+
+def find_matching_js_files(paragraph: str, keyword_groups: dict) -> list:
+    # Convert the paragraph to lowercase to ensure case-insensitive matching
+    paragraph_lower = paragraph.lower()
+    # Initialize a list to store the matching .js filenames
+    matching_js_files = []
+    # Iterate through the keyword groups
+    for js_file, keywords in keyword_groups.items():
+        # Check if any of the keywords are found in the paragraph
+        for keyword in keywords:
+            if keyword in paragraph_lower:
+                matching_js_files.append(js_file)
+                break  # Break the inner loop if a match is found to avoid duplicate entries
+    return matching_js_files
+
+
+
+
 
 def android_dynamic_analysis(request, api=False):
     """Android Dynamic Analysis Entry point."""
@@ -411,7 +489,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
             permissionlist = []
             for i in permissions:
                 permissionlist.append(i)
-            #print(permissionlist)
+            print(permissionlist)
             selectedscript = select_frida_script_permissions(permissions)
             if len(selected_script) == 0:
                 selected_script = selectedscript
@@ -420,7 +498,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
             #print(selected_script)
         except ObjectDoesNotExist:
             logger.warning(
-                'Failed to get Activities. '
+                'Failed to get Permissions. '
                 'Static Analysis not completed for the app.')
             
         try:
@@ -437,7 +515,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
             print(selected_script)
         except ObjectDoesNotExist:
             logger.warning(
-                'Failed to get Activities. '
+                'Failed to get Android API. '
                 'Static Analysis not completed for the app.')
             
         try:
@@ -447,11 +525,25 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                     selected_script.append('DEX_dex.js')
         except ObjectDoesNotExist:
             logger.warning(
-                'Failed to get Activities. '
+                'Failed to get Dex Files. '
                 'Static Analysis not completed for the app.')
         except:
             pass
-        
+
+        try:
+            playstoredetails = python_dict(
+                static_android_db.PLAYSTORE_DETAILS)
+            if playstoredetails:
+                results = find_matching_js_files(playstoredetails['description'], PLAYSTOREINFORMATION_GROUPS)
+                for files in results:
+                    selected_script.append(files)
+        except ObjectDoesNotExist:
+            logger.warning(
+                'Failed to get playstore details. '
+                'Static Analysis not completed for the app.')
+        except:
+            pass
+
         try: 
             selected_script = list(set(selected_script))
             #print(selected_script)
@@ -697,28 +789,6 @@ def android_dynamic_analysis_appsavailable(request, api=False):
         logger.exception('Dynamic Analysis Apps Available')
         return print_n_send_error_response(request, exp, api)
 
-def find_position(data, search_item):
-    position = None
-    for i, item in enumerate(data):
-        if item == search_item:
-            position = i
-            break
-    return position
-
-def check_identifiers(data, currentlive):
-    data_identifier = data[0]['identifier']
-    for item in currentlive:
-        if item['identifier'] == data_identifier:
-            return data[0]
-    return None
-
-# def move_to_last(data, target_dict):
-#     for item in data:
-#         if item == target_dict:
-#             data.remove(item)
-#             data.append(item)
-#             break
-#     return data
 
 def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
@@ -763,6 +833,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     #         print(analysis_queue.get_content())    
 
     while find_position(analysis_queue.get_content(), itemdata) != 0 or check_identifiers(analysis_queue.get_content(), current_live):
+        time.sleep(2)
         var = check_identifiers(analysis_queue.get_content(), current_live)
         if var != None:
             print(var)
@@ -858,7 +929,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
             #print(selected_script)
         except ObjectDoesNotExist:
             logger.warning(
-                'Failed to get Activities. '
+                'Failed to get Permissions. '
                 'Static Analysis not completed for the app.')
             
         try:
@@ -875,7 +946,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
             print(selected_script)
         except ObjectDoesNotExist:
             logger.warning(
-                'Failed to get Activities. '
+                'Failed to get Android API. '
                 'Static Analysis not completed for the app.')
             
         try:
@@ -885,11 +956,25 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                     selected_script.append('DEX_dex.js')
         except ObjectDoesNotExist:
             logger.warning(
-                'Failed to get Activities. '
+                'Failed to get Dex Files. '
                 'Static Analysis not completed for the app.')
         except:
             pass
-        
+
+        try:
+            playstoredetails = python_dict(
+                static_android_db.PLAYSTORE_DETAILS)
+            if playstoredetails:
+                results = find_matching_js_files(playstoredetails['description'], PLAYSTOREINFORMATION_GROUPS)
+                for files in results:
+                    selected_script.append(files)
+        except ObjectDoesNotExist:
+            logger.warning(
+                'Failed to get playstore details. '
+                'Static Analysis not completed for the app.')
+        except:
+            pass
+
         try: 
             selected_script = list(set(selected_script))
             #print(selected_script)
@@ -897,7 +982,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                 textsuggest = textsuggest + '\n // ' + scripts 
 
             for scripts in selected_script:
-                file_path = '/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
+                file_path = '/home/dylan/Desktop/Mobile-Security-Framework-MobSF-1/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
                 try:
                     with open(file_path, 'r') as file:
                             texting = file.read()
@@ -980,8 +1065,8 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                    }
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
 
+        current_live.append(itemdata)   
         analysis_queue.dequeue()
-        current_live.append(itemdata)
 
         if api:
             return context
