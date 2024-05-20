@@ -1,9 +1,9 @@
 #!/bin/bash
 
-python3 EmulatorLauncher.py
+
 
 var="$1"
-python3 EmulatorLauncher.py
+
 function validate_ip () {
 local IP=$1
 local stat=1
