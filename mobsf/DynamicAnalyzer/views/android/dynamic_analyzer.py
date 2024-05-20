@@ -801,10 +801,10 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
         analysis_queue = Queue()
         queue_display = Queue()
         analysis_queue.enqueue({'identifier': identifier,'checksum': checksum})
-        queue_display.enqueue({'identifier': identifier,'checksum': checksum, 'status':'PENDING'})
+        queue_display.enqueue({'identifier': identifier,'checksum': checksum, 'status':'PENDING, IN-QUEUE'})
     else:
         analysis_queue.enqueue({'identifier': identifier,'checksum': checksum})
-        queue_display.enqueue({'identifier': identifier,'checksum': checksum, 'status':'PENDING'})
+        queue_display.enqueue({'identifier': identifier,'checksum': checksum, 'status':'PENDING, IN-QUEUE'})
     print(analysis_queue.get_content())
 
     print(find_position(analysis_queue.get_content(), itemdata))
@@ -1065,6 +1065,9 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                    }
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
 
+        identifierdevice = itemdata['identifier']
+        queue_display.change_status(identifierdevice, 'AVAILABLE, READY-FOR-ANALYSIS')
+
         current_live.append(itemdata)   
         analysis_queue.dequeue()
 
@@ -1072,6 +1075,8 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
             return context
         return render(request, template, context)
     except Exception:
+        identifierdevice = itemdata['identifier']
+        queue_display.change_status(identifierdevice, 'ERROR, ANALYSIS-FAILED')
         analysis_queue.dequeue()
         logger.exception('Dynamic Analyzer')
         return print_n_send_error_response(+

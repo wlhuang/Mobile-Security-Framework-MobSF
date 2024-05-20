@@ -24,3 +24,10 @@ class Queue:
 
     def get_content(self):
         return self.__qlist.copy()
+    
+    def change_status(self, identifier, new_status):
+        for item in self.__qlist:
+            if item.get('identifier') == identifier:
+                item['status'] = new_status
+                break
+
