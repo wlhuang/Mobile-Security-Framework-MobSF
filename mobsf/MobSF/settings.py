@@ -33,7 +33,8 @@ DWD_DIR = os.path.join(MobSF_HOME, 'downloads/')
 # Screenshot Directory
 SCREEN_DIR = os.path.join(MobSF_HOME, 'downloads/screen/')
 # Upload Directory
-UPLD_DIR = os.path.join(MobSF_HOME, 'uploads/')
+UPLD_DIR = os.path.join(MobSF_HOME, 'uploads/') # Prev upload_DIR
+# UPLD_DIR = os.path.expanduser('~/.MobSF/uploads') # New upload_DIR
 # Database Directory
 DB_DIR = os.path.join(MobSF_HOME, 'db.sqlite3')
 # Signatures used by modules

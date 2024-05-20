@@ -352,7 +352,7 @@ def android_dynamic_analysis(request, api=False):
 
 def dynamic_analyzer(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
-#    apiKey = api_key()
+    apiKey = api_key()
     try:
         deviceidentifier = identifier
         #print(identifier)
@@ -530,7 +530,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
         print(file_list_without_extension)
         context = {'package': package,
                    'hash': checksum,
-#                   'api_key': apiKey,
+                   'api_key': apiKey,
                    'android_version': version,
                    'version': settings.MOBSF_VER,
                    'activities': activities,
@@ -787,7 +787,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
         time.sleep(30)
         emulatorid_list = get_device()
         dict = get_emulator_names(emulatorid_list)
-        #apiKey = api_key()
+        apiKey = api_key()
     except:
         print('error, removing it from queue')
         analysis_queue.dequeue()
@@ -969,7 +969,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
         print(file_list_without_extension)
         context = {'package': package,
                    'hash': checksum,
-#                   'api_key': apiKey,
+                   'api_key': apiKey,
                    'android_version': version,
                    'version': settings.MOBSF_VER,
                    'activities': activities,
