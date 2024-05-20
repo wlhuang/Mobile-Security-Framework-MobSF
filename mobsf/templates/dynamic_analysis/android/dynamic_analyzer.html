@@ -1415,9 +1415,9 @@ xhr1.onreadystatechange = function() {
   if(xhr1.readyState == 4 && xhr1.status == 200) {
       console.log("First command executed successfully");
       
-      // Second command: report_json
+      // Second command: acube_json
       var xhr2 = new XMLHttpRequest();
-      var url2 = baseURL + "/api/v1/dynamic/acube_JSON";
+      var url2 = baseURL + "/api/v1/dynamic/acube_json";
       var params2 = "hash=" + hash;
       xhr2.open("POST", url2, true);
       xhr2.setRequestHeader("Authorization", apiKey);
@@ -1492,9 +1492,9 @@ xhr1.send(params1);
 //         if(xhr1.readyState == 4 && xhr1.status == 200) {
 //             console.log("First command executed successfully");
 
-//             // Second command: acube_JSON
+//             // Second command: acube_json
 //             var xhr2 = new XMLHttpRequest();
-//             var url2 = baseURL + "/api/v1/dynamic/acube_JSON";
+//             var url2 = baseURL + "/api/v1/dynamic/acube_json";
 //             var params2 = "hash=" + hash;
 //             xhr2.open("POST", url2, true);
 //             xhr2.setRequestHeader("Authorization", apiKey);
