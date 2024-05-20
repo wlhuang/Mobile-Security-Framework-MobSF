@@ -49,7 +49,7 @@ from mobsf.DynamicAnalyzer.views.android.queue import *
 logger = logging.getLogger(__name__)
 
 analysis_queue = None
-queue_display = None
+queue_display = []
 current_live = [{'identifier': 'TESTINGDATA', 'checksum': 'TESTINGDATA'}]
 
 
@@ -214,7 +214,7 @@ def select_frida_script_permissions(permissions):
         group = map_permissions_to_group(permission)
         #print(group)
         if group:
-            for filename in os.listdir('/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir('/home/dylan/Desktop/Mobile-Security-Framework-MobSF-1/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -235,7 +235,7 @@ def select_frida_script_androidapis(androidapis):
         group = map_api_to_group(androidapi)
         #print(group)
         if group:
-            for filename in os.listdir('/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir('/home/dylan/Desktop/Mobile-Security-Framework-MobSF-1/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -311,9 +311,11 @@ def find_matching_js_files(paragraph: str, keyword_groups: dict) -> list:
                 break  # Break the inner loop if a match is found to avoid duplicate entries
     return matching_js_files
 
-
-
-
+def change_status(data, identifier, checksum, new_status):
+    for item in data:
+        if item.get('identifier') == identifier and item.get('checksum') == checksum:
+            item['status'] = new_status
+            break
 
 def android_dynamic_analysis(request, api=False):
     """Android Dynamic Analysis Entry point."""
@@ -551,7 +553,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                 textsuggest = textsuggest + '\n // ' + scripts 
 
             for scripts in selected_script:
-                file_path = 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
+                file_path = '{}'.format(scripts)
                 try:
                     with open(file_path, 'r') as file:
                             texting = file.read()
@@ -771,8 +773,8 @@ def android_dynamic_analysis_appsavailable(request, api=False):
                 'ANDROIDAPI': apk.ANDROID_API
             }
             scan_apps.append(temp_dict)
-        if queue_display != None:
-            displaystuff = queue_display.get_content()
+        if len(queue_display) != None:
+            displaystuff = queue_display
         else:
             displaystuff = []
         context = {'apps': scan_apps,
@@ -799,12 +801,11 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     global current_live
     if analysis_queue is None:
         analysis_queue = Queue()
-        queue_display = Queue()
         analysis_queue.enqueue({'identifier': identifier,'checksum': checksum})
-        queue_display.enqueue({'identifier': identifier,'checksum': checksum, 'status':'PENDING, IN-QUEUE'})
+        queue_display.append({'identifier': identifier,'checksum': checksum, 'status':'PENDING, IN-QUEUE'})
     else:
         analysis_queue.enqueue({'identifier': identifier,'checksum': checksum})
-        queue_display.enqueue({'identifier': identifier,'checksum': checksum, 'status':'PENDING, IN-QUEUE'})
+        queue_display.append({'identifier': identifier,'checksum': checksum, 'status':'PENDING, IN-QUEUE'})
     print(analysis_queue.get_content())
 
     print(find_position(analysis_queue.get_content(), itemdata))
@@ -982,7 +983,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                 textsuggest = textsuggest + '\n // ' + scripts 
 
             for scripts in selected_script:
-                file_path = '/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
+                file_path = '/home/dylan/Desktop/Mobile-Security-Framework-MobSF-1/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
                 try:
                     with open(file_path, 'r') as file:
                             texting = file.read()
@@ -1066,7 +1067,8 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
 
         identifierdevice = itemdata['identifier']
-        queue_display.change_status(identifierdevice, 'AVAILABLE, READY-FOR-ANALYSIS')
+        checksumdevice = itemdata['checksum']
+        change_status(queue_display, identifierdevice, checksumdevice, 'AVAILABLE, READY-FOR-ANALYSIS')
 
         current_live.append(itemdata)   
         analysis_queue.dequeue()
@@ -1076,7 +1078,8 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
         return render(request, template, context)
     except Exception:
         identifierdevice = itemdata['identifier']
-        queue_display.change_status(identifierdevice, 'ERROR, ANALYSIS-FAILED')
+        checksumdevice = itemdata['checksum']
+        change_status(queue_display, identifierdevice, checksumdevice, 'ERROR, ANALYSIS-FAILED')
         analysis_queue.dequeue()
         logger.exception('Dynamic Analyzer')
         return print_n_send_error_response(+

@@ -42,10 +42,10 @@ _FPID = "/system/fd_server"
 # AJAX
 
 # Define a function to terminate the analysis process
-def terminate_analysis(request, identifier):
+def terminate_analysis(request, identifier, checksum):
     """Terminate the analysis process."""
     #kill_frida_process()
-    kill_avd(identifier)
+    kill_avd(identifier, checksum)
 
 # Define a function to kill the Frida process
 def kill_frida_process():
@@ -87,9 +87,8 @@ def get_pid_by_emulator(emulator_name):
     return None
 
 # Define a function to restart a new AVD with a golden image
-def kill_avd(identifier):
+def kill_avd(identifier, checksum):
     """Kill AVD"""
-    global queue_display
     try:
         print(identifier)
         command = ["adb", "-s", identifier, "emu", "avd", "name"]
@@ -117,6 +116,8 @@ def kill_avd(identifier):
                 time.sleep(5)
                 remove_by_identifier(emulator_name)
                 print(current_live)
+                global queue_display
+                change_status(queue_display, emulator_name, checksum, 'TERMINATED, ANALYSIS-SUCCESSFULLY-COMPLETED')
             except subprocess.CalledProcessError as e:
                 logger.error("Failed to kill the emulator process.")
         else:
@@ -160,8 +161,16 @@ def instrument(request, api=False):
         'message': 'Failed to instrument app'}
     try:
         deviceidentifier = request.POST['deviceidentifier']
+        md5_hash = request.POST['hash']
+
+        global queue_display
+        command = ["adb", "-s", deviceidentifier, "emu", "avd", "name"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        emulator_name = result.stdout.strip().splitlines()[0]
+        print(emulator_name)
+        change_status(queue_display, emulator_name, md5_hash, 'ACTIVE, ANALYSIS-IN-PROGRESS')
         #time = Timer(30, terminate_analysis, args=[request], kwargs=None)  # Adjust timeout value as needed
-        time = Timer(100, terminate_analysis, args=[request, deviceidentifier])
+        time = Timer(100, terminate_analysis, args=[request, deviceidentifier, md5_hash])
 
 
         # Start the timer
@@ -170,7 +179,6 @@ def instrument(request, api=False):
         action = request.POST.get('frida_action', 'spawn')
         pid = request.POST.get('pid')
         new_pkg = request.POST.get('new_package')
-        md5_hash = request.POST['hash']
         default_hooks = request.POST['default_hooks']
         auxiliary_hooks = request.POST['auxiliary_hooks']
         code = request.POST['frida_code']
