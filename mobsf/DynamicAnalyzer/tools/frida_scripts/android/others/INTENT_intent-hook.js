@@ -1,23 +1,24 @@
 // * Source: https://github.com/ivan-sincek/android-penetration-testing-cheat-sheet/blob/main/scripts/android-intent-monitor.js
+send("[Initialised] Intent Intercept Monitoring");
 
 function hook(intent) {
    var text = [];
    var tmp = null;
    tmp = intent.getComponent();
    if (tmp) {
-       text.push("Activity: " + tmp.getClassName());
+       text.push("[Intent Intercept Monitoring] Activity: " + tmp.getClassName());
    }
    tmp = intent.getAction();
    if (tmp) {
-       text.push("Action: " + tmp);
+       text.push("[Intent Intercept Monitoring] Action: " + tmp);
    }
    tmp = intent.getData();
    if (tmp) {
-       text.push("URI: " + tmp);
+       text.push("[Intent Intercept Monitoring] URI: " + tmp);
    }
    tmp = intent.getType();
    if (tmp) {
-       text.push("Type: " + tmp);
+       text.push("[Intent Intercept Monitoring] Type: " + tmp);
    }
    tmp = intent.getExtras();
    if (tmp) {
