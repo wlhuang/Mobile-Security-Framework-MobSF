@@ -15,7 +15,9 @@ import logging
 from django.shortcuts import render
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
 
+from mobsf.DynamicAnalyzer.views.android.dynamic_analyzer import *
 from mobsf.DynamicAnalyzer.views.android.frida_core import Frida
 from mobsf.DynamicAnalyzer.views.common.shared import (
     invalid_params,
@@ -41,10 +43,20 @@ _FPID = "/system/fd_server"
 # AJAX
 
 # Define a function to terminate the analysis process
-def terminate_analysis(request):
+def terminate_analysis(request, identifier, checksum):
     """Terminate the analysis process."""
-    kill_frida_process()
-    kill_avd()
+    #kill_frida_process()
+    kill_avd(identifier, checksum)
+
+def terminate_analysis_manual(request):
+    if request.method == 'POST':
+        identifier = request.POST.get('identifier')
+        checksum = request.POST.get('checksum')
+        # Call your function
+        kill_avd(identifier, checksum)
+        return JsonResponse({'status': 'ok', 'message': 'Analysis terminated successfully.'})
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
 
 # Define a function to kill the Frida process
 def kill_frida_process():
@@ -69,21 +81,54 @@ def kill_frida_process():
     except Exception as e:
         logger.error("Error while killing Frida server process: {}".format(e))
 
+def get_pid_by_emulator(emulator_name):
+    # Get the PIDs of the running AVDs
+    pid_output = subprocess.run(["pgrep", "-f", "avd"], capture_output=True, text=True, check=True).stdout.strip()
+    pids = pid_output.split()
+
+    for pid in pids:
+        process_info = subprocess.run(["ps", "-p", pid, "-o", "pid,cmd"], capture_output=True, text=True, check=True).stdout.strip()
+        lines = process_info.split("\n")
+        if len(lines) > 1:
+            # Split the line into PID and CMD
+            pid_info, cmd_info = lines[1].strip().split(maxsplit=1)
+            # Check if the emulator name matches
+            if f"-avd {emulator_name}" in cmd_info:
+                return int(pid_info)
+    return None
+
 # Define a function to restart a new AVD with a golden image
-def kill_avd():
+def kill_avd(identifier, checksum):
     """Kill AVD"""
     try:
+        print(identifier)
+        command = ["adb", "-s", identifier, "emu", "avd", "name"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        emulator_name = result.stdout.strip().splitlines()[0]
+        print(emulator_name)
+        pid_output = get_pid_by_emulator(emulator_name)
+        print(pid_output)
+
         # Find the PID of the emulator using pgrep
-        pid_output = subprocess.run(["pgrep", "-f", "avd"], capture_output=True, text=True, check=True).stdout.strip()
+        #pid_output = subprocess.run(["pgrep", "-f", "avd"], capture_output=True, text=True, check=True).stdout.strip()
+        #print(pid_output)
         
         if pid_output:
-            emulator_pid = pid_output
-            logger.info(f"The PID of the emulator process found is: {emulator_pid}")
+            emulator_pid = str(pid_output)
+            #logger.info(f"The PID of the emulator process found is: {emulator_pid}")
+            #emulatorname = get_emulator_name(emulator_pid)
+            logger.info(f"The emulator name of the PID : {emulator_pid} is {emulator_name}")
 
             try:
                 # Kill the emulator process using -15 (SIGTERM)
                 kill_emulator = subprocess.run(["kill", "-15", emulator_pid], capture_output=True, text=True, check=True)
                 logger.info("Killing the emulator with PID: %s", emulator_pid)
+                global current_live
+                time.sleep(5)
+                remove_by_identifier(emulator_name)
+                print(current_live)
+                global queue_display
+                change_status(queue_display, emulator_name, checksum, 'TERMINATED, ANALYSIS-COMPLETED')
             except subprocess.CalledProcessError as e:
                 logger.error("Failed to kill the emulator process.")
         else:
@@ -95,7 +140,7 @@ def kill_avd():
         msg = str(excep)
         exp = excep.__doc__
         return print_n_send_error_response(request, msg, exp)
-
+    
 @require_http_methods(['POST'])
 def get_runtime_dependencies(request, api=False):
     """Get App runtime dependencies."""
@@ -126,7 +171,18 @@ def instrument(request, api=False):
         'status': 'failed',
         'message': 'Failed to instrument app'}
     try:
-        time = Timer(100, terminate_analysis, args=[request], kwargs=None)  # Adjust timeout value as needed
+        deviceidentifier = request.POST['deviceidentifier']
+        md5_hash = request.POST['hash']
+
+        global queue_display
+        command = ["adb", "-s", deviceidentifier, "emu", "avd", "name"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        emulator_name = result.stdout.strip().splitlines()[0]
+        print(emulator_name)
+        change_status(queue_display, emulator_name, md5_hash, 'ACTIVE, ANALYSIS-IN-PROGRESS')
+        #time = Timer(30, terminate_analysis, args=[request], kwargs=None)  # Adjust timeout value as needed
+        time = Timer(100, terminate_analysis, args=[request, deviceidentifier, md5_hash])
+
 
         # Start the timer
         time.start()
@@ -134,11 +190,9 @@ def instrument(request, api=False):
         action = request.POST.get('frida_action', 'spawn')
         pid = request.POST.get('pid')
         new_pkg = request.POST.get('new_package')
-        md5_hash = request.POST['hash']
         default_hooks = request.POST['default_hooks']
         auxiliary_hooks = request.POST['auxiliary_hooks']
         code = request.POST['frida_code']
-        deviceidentifier = request.POST['deviceidentifier']
         print(deviceidentifier)
         # Fill extras
         extras = {}

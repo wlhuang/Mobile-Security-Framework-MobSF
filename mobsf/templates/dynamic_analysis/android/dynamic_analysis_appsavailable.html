@@ -200,6 +200,7 @@ textarea:focus {
     var url = urlTemplate.replace('checksumvar', checksum).replace('identifiervar', selectedValue);
     console.log(url)
     document.getElementById(buttonId).setAttribute('href', url);
+    location.reload();
     // Optionally, if you want to navigate to the URL immediately after setting it:
     // window.location.href = url;
   }

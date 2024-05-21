@@ -45,7 +45,7 @@ from mobsf.StaticAnalyzer.views.ios import static_analyzer as ios_sa
 from mobsf.StaticAnalyzer.views.ios import view_source as io_view_source
 
 from . import settings
-
+from mobsf.DynamicAnalyzer.views.android.tests_frida import *
 
 urlpatterns = [
     # REST API
@@ -282,6 +282,9 @@ if settings.API_ONLY == '0':
         re_path(r'^start_activity/$',
                 tests_common.start_activity,
                 name='start_activity'),
+        re_path(r'^terminate_analysis_manual/$',
+                terminate_analysis_manual,
+                name='terminate_analysis_manual'),
         re_path(r'^download_data/$', tests_common.download_data),
         re_path(r'^collect_logs/$', tests_common.collect_logs),
         re_path(r'^tls_tests/$', tests_common.tls_tests),

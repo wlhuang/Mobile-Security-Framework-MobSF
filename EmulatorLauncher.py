@@ -29,10 +29,10 @@ def start_emulator(avd_name):
     subprocess.Popen(emulator_command)
 
 # if __name__ == "__main__":
-#     avd_name = "Emulator_1"
-#     start_emulator(avd_name)
-#     avd_name = "Emulator_2"
-#     start_emulator(avd_name)
+#      avd_name = "Emulator_1"
+#      start_emulator(avd_name)
+    # avd_name = "Emulator_2"
+    # start_emulator(avd_name)
     # avd_name = "Emulator_3"
     # start_emulator(avd_name)
     # avd_name = "Emulator_4"
