@@ -108,11 +108,10 @@
                   <br>
                   <a href="#" id="stop" class="btn btn-info" role="button" ><i class="fa fa-file-alt"></i> Generate Report</a>
 		  <a href="#" id="myButton" class="btn btn-info" role="button" ><i class="fa fa-file-alt"></i> Generate JSON Report </a>
-                  <a href="#" id="combinedButton" class="btn btn-info" role="button" ><i class="fa fa-file-alt"></i> Generate Combined JSON REPORT </a>
-                  <button id="terminateanalysis" type="submit" class="btn btn-danger" onclick="terminate_analysis_manual('{{ devicecurrentlyinused }}', '{{ hash }}')"> <i class="fa fa-ban"></i> Terminate Analysis </button>
-                  <div id="loadingIndicator" style="display: none;">
+		  <div id="loadingIndicator" style="display: none;">
                     <p>Loading, please wait...</p>
                   </div>
+                  <button id="terminateanalysis" type="submit" class="btn btn-danger" onclick="terminate_analysis_manual('{{ devicecurrentlyinused }}', '{{ hash }}')"> <i class="fa fa-ban"></i> Terminate Analysis </button>
                 </div>
               </div>
               <!-- /.card-body -->
@@ -1413,170 +1412,9 @@ $("#stop").one( "click", function() {
 });
 
 document.getElementById("myButton").addEventListener("click", function() {
-// Extracting hash and package from the HTML
-var hash = "{{ hash }}";
-var package = "{{ package }}";
-var apiKey = "{{ api_key }}";
-var baseURL = window.location.origin
-// var apiKey = "c2929f95781b975382b4d81dff1ff8940961b2664c54da96bbcd062fe9df29d6";
-
-// First command: stop_analysis
-var xhr1 = new XMLHttpRequest();
-var url1 = baseURL + "/api/v1/dynamic/stop_analysis";
-var params1 = "hash=" + hash;
-xhr1.open("POST", url1, true);
-xhr1.setRequestHeader("Authorization", apiKey);
-xhr1.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-xhr1.onreadystatechange = function() {
-  if(xhr1.readyState == 4 && xhr1.status == 200) {
-      console.log("First command executed successfully");
-      
-      // Second command: acube_json
-      var xhr2 = new XMLHttpRequest();
-      var url2 = baseURL + "/api/v1/dynamic/acube_json";
-      var params2 = "hash=" + hash;
-      xhr2.open("POST", url2, true);
-      xhr2.setRequestHeader("Authorization", apiKey);
-      xhr2.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-      xhr2.responseType = 'blob'; // Set the response type to blob
-      xhr2.onreadystatechange = function() {
-        if(xhr2.readyState == 4 && xhr2.status == 200) {
-            console.log("Second command executed successfully");
-            var blob = new Blob([xhr2.response], { type: "application/json" });
-            var fileName = package + ".json"; // Specify your filename here
-            var link = document.createElement("a");
-            link.href = window.URL.createObjectURL(blob);
-            link.download = fileName;
-            document.body.appendChild(link); // Append the link to the document body
-            link.click(); // Programmatically trigger the click event
-            document.body.removeChild(link); // Remove the link after download
-        }
-      }
-      xhr2.send(params2);
-  }
-}
-xhr1.send(params1);
-});
-
-// // This code runs the /get_frida_output/ url which grabs the frida logs that is called mobsf_frida_out.txt
-// document.getElementById("combinedButton").addEventListener("click", function(event) {
-//     event.preventDefault(); // Prevent the default behavior of the link
-    
-//     // AJAX request to trigger the Django view that runs the Frida script and returns the JSON report
-//     var xhr = new XMLHttpRequest();
-//     xhr.open("POST", "/get_frida_output/", true); // Update the URL as per your Django URL configuration
-//     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-//     xhr.onreadystatechange = function() {
-//         if (xhr.readyState == 4 && xhr.status == 200) {
-//             // Create a blob from the response data
-//             var blob = new Blob([xhr.responseText], {type: "application/json"});
-//             var url = window.URL.createObjectURL(blob);
-            
-//             // Create a temporary link element and click it to trigger the download
-//             var a = document.createElement("a");
-//             a.href = url;
-//             a.download = "mobsf_frida_out.json";
-//             document.body.appendChild(a);
-//             a.click();
-//             window.URL.revokeObjectURL(url);
-//             document.body.removeChild(a);
-//         }
-//     };
-//     // Send the POST request with the necessary data (e.g., hash value)
-//     var hash = "{{ hash }}"; // Replace with your actual hash value
-//     xhr.send("hash=" + hash);
-// });
-
-// //This code gets .json file from the generate report and the converted mobsf_frida_out.txt to .json file. Both files are then merged and downloaded to user download folder.
-// document.getElementById("combinedButton").addEventListener("click", function(event) {
-//     event.preventDefault(); // Prevent the default behavior of the link
-
-//     // Extracting hash and package from the HTML
-//     var hash = "{{ hash }}";
-//     var package = "{{ package }}";
-//     var apiKey = "{{ api_key }}";
-//     var baseURL = window.location.origin;
-
-//     // First command: stop_analysis
-//     var xhr1 = new XMLHttpRequest();
-//     var url1 = baseURL + "/api/v1/dynamic/stop_analysis";
-//     var params1 = "hash=" + hash;
-//     xhr1.open("POST", url1, true);
-//     xhr1.setRequestHeader("Authorization", apiKey);
-//     xhr1.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-//     xhr1.onreadystatechange = function() {
-//         if(xhr1.readyState == 4 && xhr1.status == 200) {
-//             console.log("First command executed successfully");
-
-//             // Second command: acube_json
-//             var xhr2 = new XMLHttpRequest();
-//             var url2 = baseURL + "/api/v1/dynamic/acube_json";
-//             var params2 = "hash=" + hash;
-//             xhr2.open("POST", url2, true);
-//             xhr2.setRequestHeader("Authorization", apiKey);
-//             xhr2.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-//             xhr2.responseType = 'blob'; // Set the response type to blob
-//             xhr2.onreadystatechange = function() {
-//                 if(xhr2.readyState == 4 && xhr2.status == 200) {
-//                     console.log("Second command executed successfully");
-
-//                     // Third command: get_frida_output
-//                     var xhr3 = new XMLHttpRequest();
-//                     var url3 = "/get_frida_output/"; // Update the URL as per your Django URL configuration
-//                     var params3 = "hash=" + hash;
-//                     xhr3.open("POST", url3, true);
-//                     xhr3.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-//                     xhr3.onreadystatechange = function() {
-//                         if(xhr3.readyState == 4 && xhr3.status == 200) {
-//                             console.log("Third command executed successfully");
-
-//                             // Read acubeResponse as text
-//                             var reader = new FileReader();
-//                             reader.onload = function(event) {
-//                                 var acubeText = event.target.result;
-//                                 var fridaResponse = xhr3.responseText;
-
-//                                 // Combine the two JSON responses
-//                                 var combinedJSON;
-//                                 try {
-//                                     var acubeData = JSON.parse(acubeText);
-//                                     var fridaData = JSON.parse(fridaResponse);
-//                                     combinedJSON = { ...acubeData, ...fridaData }; // Merging the JSON data
-//                                 } catch (e) {
-//                                     console.error("Error parsing JSON responses:", e);
-//                                     return;
-//                                 }
-
-//                                 // Create a blob from the combined JSON data
-//                                 var blob = new Blob([JSON.stringify(combinedJSON)], { type: "application/json" });
-//                                 var fileName = package + "_combined.json"; // Specify your filename here
-//                                 var link = document.createElement("a");
-//                                 link.href = window.URL.createObjectURL(blob);
-//                                 link.download = fileName;
-//                                 document.body.appendChild(link); // Append the link to the document body
-//                                 link.click(); // Programmatically trigger the click event
-//                                 document.body.removeChild(link); // Remove the link after download
-//                             };
-//                             reader.readAsText(xhr2.response); // Read the Blob as text
-//                         }
-//                     };
-//                     xhr3.send(params3);
-//                 }
-//             };
-//             xhr2.send(params2);
-//         }
-//     };
-//     xhr1.send(params1);
-// });
-
-//This code gets .json file from the generate report and the converted mobsf_frida_out.txt to .json file. Both files are then merged and downloaded to user download folder. (Added buffering)
-document.getElementById("combinedButton").addEventListener("click", function(event) {
-    event.preventDefault(); // Prevent the default behavior of the link
-
     // Show the loading indicator
-    var loadingIndicator = document.getElementById("loadingIndicator");
-    loadingIndicator.style.display = "block";
-
+    document.getElementById("loadingIndicator").style.display = "block";
+    
     // Extracting hash and package from the HTML
     var hash = "{{ hash }}";
     var package = "{{ package }}";
@@ -1591,71 +1429,44 @@ document.getElementById("combinedButton").addEventListener("click", function(eve
     xhr1.setRequestHeader("Authorization", apiKey);
     xhr1.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     xhr1.onreadystatechange = function() {
-        if(xhr1.readyState == 4 && xhr1.status == 200) {
+        if (xhr1.readyState == 4 && xhr1.status == 200) {
             console.log("First command executed successfully");
 
-            // Second command: acube_JSON
+            // Second command: acube_json
             var xhr2 = new XMLHttpRequest();
-            var url2 = baseURL + "/api/v1/dynamic/acube_JSON";
+            var url2 = baseURL + "/api/v1/dynamic/acube_json";
             var params2 = "hash=" + hash;
             xhr2.open("POST", url2, true);
             xhr2.setRequestHeader("Authorization", apiKey);
             xhr2.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
             xhr2.responseType = 'blob'; // Set the response type to blob
             xhr2.onreadystatechange = function() {
-                if(xhr2.readyState == 4 && xhr2.status == 200) {
+                if (xhr2.readyState == 4 && xhr2.status == 200) {
                     console.log("Second command executed successfully");
+                    var blob = new Blob([xhr2.response], { type: "application/json" });
+                    var fileName = package + ".json"; // Specify your filename here
+                    var link = document.createElement("a");
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = fileName;
+                    document.body.appendChild(link); // Append the link to the document body
+                    link.click(); // Programmatically trigger the click event
+                    document.body.removeChild(link); // Remove the link after download
 
-                    // Third command: get_frida_output
-                    var xhr3 = new XMLHttpRequest();
-                    var url3 = "/get_frida_output/"; // Update the URL as per your Django URL configuration
-                    var params3 = "hash=" + hash;
-                    xhr3.open("POST", url3, true);
-                    xhr3.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                    xhr3.onreadystatechange = function() {
-                        if(xhr3.readyState == 4 && xhr3.status == 200) {
-                            console.log("Third command executed successfully");
-
-                            // Read acubeResponse as text
-                            var reader = new FileReader();
-                            reader.onload = function(event) {
-                                var acubeText = event.target.result;
-                                var fridaResponse = xhr3.responseText;
-
-                                // Combine the two JSON responses
-                                var combinedJSON;
-                                try {
-                                    var acubeData = JSON.parse(acubeText);
-                                    var fridaData = JSON.parse(fridaResponse);
-                                    combinedJSON = { ...acubeData, ...fridaData }; // Merging the JSON data
-                                } catch (e) {
-                                    console.error("Error parsing JSON responses:", e);
-                                    loadingIndicator.style.display = "none"; // Hide the loading indicator in case of error
-                                    return;
-                                }
-
-                                // Create a blob from the combined JSON data
-                                var blob = new Blob([JSON.stringify(combinedJSON)], { type: "application/json" });
-                                var fileName = package + "_combined.json"; // Specify your filename here
-                                var link = document.createElement("a");
-                                link.href = window.URL.createObjectURL(blob);
-                                link.download = fileName;
-                                document.body.appendChild(link); // Append the link to the document body
-                                link.click(); // Programmatically trigger the click event
-                                document.body.removeChild(link); // Remove the link after download
-
-                                // Hide the loading indicator after the download is complete
-                                loadingIndicator.style.display = "none";
-                            };
-                            reader.readAsText(xhr2.response); // Read the Blob as text
-                        }
-                    };
-                    xhr3.send(params3);
+                    // Hide the loading indicator
+                    document.getElementById("loadingIndicator").style.display = "none";
+                } else if (xhr2.readyState == 4) {
+                    console.error("Second command failed");
+                    // Hide the loading indicator
+                    document.getElementById("loadingIndicator").style.display = "none";
                 }
-            };
+            }
             xhr2.send(params2);
+        } else if (xhr1.readyState == 4) {
+            console.error("First command failed");
+            // Hide the loading indicator
+            document.getElementById("loadingIndicator").style.display = "none";
         }
-    };
+    }
     xhr1.send(params1);
 });
 
