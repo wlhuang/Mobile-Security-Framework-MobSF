@@ -117,7 +117,7 @@ def kill_avd(identifier, checksum):
                 remove_by_identifier(emulator_name)
                 print(current_live)
                 global queue_display
-                change_status(queue_display, emulator_name, checksum, 'TERMINATED, ANALYSIS-SUCCESSFULLY-COMPLETED')
+                change_status(queue_display, emulator_name, checksum, 'TERMINATED (TIMEOUT), ANALYSIS-COMPLETED')
             except subprocess.CalledProcessError as e:
                 logger.error("Failed to kill the emulator process.")
         else:
