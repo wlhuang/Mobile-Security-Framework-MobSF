@@ -1,3 +1,4 @@
+send('[Initialised] Location Monitor');
 setInterval(function () {
     try {
         var locationManager = Java.use("android.location.LocationManager");

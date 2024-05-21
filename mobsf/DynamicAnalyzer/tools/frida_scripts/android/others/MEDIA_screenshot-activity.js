@@ -1,4 +1,5 @@
 Java.perform(function() {
+    send('[Initialised] Screenshot Activity Monitor');
     var MediaProjection = Java.use('android.media.projection.MediaProjection');
     var VirtualDisplay = Java.use('android.hardware.display.VirtualDisplay');
     var timestamp = new Date().toISOString();

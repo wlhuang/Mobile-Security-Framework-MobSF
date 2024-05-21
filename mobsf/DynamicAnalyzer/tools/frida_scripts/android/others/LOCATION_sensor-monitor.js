@@ -1,4 +1,5 @@
 Java.perform(function () {
+    send('[Initialised] Sensor Monitor');
     var SensorManager = Java.use('android.hardware.SensorManager');
     var timestamp = new Date().toISOString();
     SensorManager.getDefaultSensor.overload('int').implementation = function (sensorType) {
