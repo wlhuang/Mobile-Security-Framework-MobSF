@@ -15,6 +15,7 @@ import logging
 from django.shortcuts import render
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
 
 from mobsf.DynamicAnalyzer.views.android.dynamic_analyzer import *
 from mobsf.DynamicAnalyzer.views.android.frida_core import Frida
@@ -46,6 +47,16 @@ def terminate_analysis(request, identifier, checksum):
     """Terminate the analysis process."""
     #kill_frida_process()
     kill_avd(identifier, checksum)
+
+def terminate_analysis_manual(request):
+    if request.method == 'POST':
+        identifier = request.POST.get('identifier')
+        checksum = request.POST.get('checksum')
+        # Call your function
+        kill_avd_manual(identifier, checksum)
+        return JsonResponse({'status': 'ok', 'message': 'Analysis terminated successfully.'})
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
 
 # Define a function to kill the Frida process
 def kill_frida_process():
@@ -118,6 +129,49 @@ def kill_avd(identifier, checksum):
                 print(current_live)
                 global queue_display
                 change_status(queue_display, emulator_name, checksum, 'TERMINATED (TIMEOUT), ANALYSIS-COMPLETED')
+            except subprocess.CalledProcessError as e:
+                logger.error("Failed to kill the emulator process.")
+        else:
+            logger.info("No emulator process is found")
+    except subprocess.CalledProcessError as e:
+        logger.error("Failed to find the emulator process PID.")
+    except Exception as excep:
+        logger.error('Error restarting AVD')
+        msg = str(excep)
+        exp = excep.__doc__
+        return print_n_send_error_response(request, msg, exp)
+    
+def kill_avd_manual(identifier, checksum):
+    """Kill AVD"""
+    try:
+        print(identifier)
+        command = ["adb", "-s", identifier, "emu", "avd", "name"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        emulator_name = result.stdout.strip().splitlines()[0]
+        print(emulator_name)
+        pid_output = get_pid_by_emulator(emulator_name)
+        print(pid_output)
+
+        # Find the PID of the emulator using pgrep
+        #pid_output = subprocess.run(["pgrep", "-f", "avd"], capture_output=True, text=True, check=True).stdout.strip()
+        #print(pid_output)
+        
+        if pid_output:
+            emulator_pid = str(pid_output)
+            #logger.info(f"The PID of the emulator process found is: {emulator_pid}")
+            #emulatorname = get_emulator_name(emulator_pid)
+            logger.info(f"The emulator name of the PID : {emulator_pid} is {emulator_name}")
+
+            try:
+                # Kill the emulator process using -15 (SIGTERM)
+                kill_emulator = subprocess.run(["kill", "-15", emulator_pid], capture_output=True, text=True, check=True)
+                logger.info("Killing the emulator with PID: %s", emulator_pid)
+                global current_live
+                time.sleep(5)
+                remove_by_identifier(emulator_name)
+                print(current_live)
+                global queue_display
+                change_status(queue_display, emulator_name, checksum, 'TERMINATED (MANUAL), ANALYSIS-COMPLETED')
             except subprocess.CalledProcessError as e:
                 logger.error("Failed to kill the emulator process.")
         else:
