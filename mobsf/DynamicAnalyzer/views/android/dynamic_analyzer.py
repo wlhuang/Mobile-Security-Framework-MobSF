@@ -895,6 +895,10 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
         try:
             #identifier = get_device()
             identifier = deviceidentifier
+            command = ["adb", "-s", identifier, "emu", "avd", "name"]
+            result = subprocess.run(command, capture_output=True, text=True)
+            emulator_name = result.stdout.strip().splitlines()[0]
+            print(emulator_name)
         except Exception:
             return print_n_send_error_response(
                 request, get_android_dm_exception_msg(), api)
@@ -1062,7 +1066,8 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                    'title': 'Dynamic Analyzer',
                    'text': text,
                    'scripts': file_list_without_extension,
-                   'devicecurrentlyinused': identifier
+                   'devicecurrentlyinused': identifier,
+                   'emulator_name': emulator_name
                    }
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
 
