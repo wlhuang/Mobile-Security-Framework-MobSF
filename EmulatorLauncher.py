@@ -2,6 +2,7 @@ import subprocess
 import os
 
 def snapshot_retrieve(avd_name):
+    try:
         path = "/home/live/.android/avd/"+avd_name+".avd/snapshots"
         os.chdir(path)
         
@@ -23,17 +24,15 @@ def snapshot_retrieve(avd_name):
         
         print(most_recent_file)
         return most_recent_file
+    except:
+        pass
 
 def start_emulator(avd_name):
-    emulator_command = ["emulator", "-avd", avd_name, "-writable-system", "-snapshot", snapshot_retrieve(avd_name)]
-    subprocess.Popen(emulator_command)
+    try:
+        emulator_command = ["emulator", "-avd", avd_name, "-writable-system", "-snapshot", snapshot_retrieve(avd_name)]
+        subprocess.Popen(emulator_command)
+    except:
+        emulator_command = ["emulator", "-avd", avd_name, "-writable-system", "-no-snapshot"]
+        subprocess.Popen(emulator_command)
 
-# if __name__ == "__main__":
-#      avd_name = "Emulator_1"
-#      start_emulator(avd_name)
-    # avd_name = "Emulator_2"
-    # start_emulator(avd_name)
-    # avd_name = "Emulator_3"
-    # start_emulator(avd_name)
-    # avd_name = "Emulator_4"
-    # start_emulator(avd_name)
+
