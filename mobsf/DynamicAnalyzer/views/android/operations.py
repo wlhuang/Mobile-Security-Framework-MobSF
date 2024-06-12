@@ -29,6 +29,13 @@ from mobsf.MobSF.utils import (
     is_number,
 )
 from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
+from mobsf.MobSF.views.authentication import (
+    login_required,
+)
+from mobsf.MobSF.views.authorization import (
+    Permissions,
+    permission_required,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +61,8 @@ def get_package_name(checksum):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def mobsfy(request, api=False):
     """Configure Instance for Dynamic Analysis."""
@@ -88,6 +97,8 @@ def mobsfy(request, api=False):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def execute_adb(request, api=False):
     """Execute ADB Commands."""
@@ -116,6 +127,8 @@ def execute_adb(request, api=False):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def get_component(request):
     """Get Android Component."""
@@ -136,6 +149,8 @@ def get_component(request):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def run_apk(request):
     """Run Android APK."""
@@ -158,6 +173,8 @@ def run_apk(request):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def take_screenshot(request, api=False):
     """Take Screenshot."""
@@ -187,6 +204,8 @@ def take_screenshot(request, api=False):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def screen_cast(request):
     """ScreenCast."""
@@ -207,6 +226,8 @@ def screen_cast(request):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def touch(request):
     """Sending Touch/Swipe/Text Events."""
@@ -263,6 +284,8 @@ def touch(request):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def mobsf_ca(request, api=False):
     """Install and Remove MobSF Proxy RootCA."""
@@ -286,6 +309,8 @@ def mobsf_ca(request, api=False):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def global_proxy(request, api=False):
     """Set/unset global proxy."""

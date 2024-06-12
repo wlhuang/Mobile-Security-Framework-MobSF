@@ -37,6 +37,13 @@ from mobsf.MobSF.views.home import (
     dynamic_analysis,
 )
 logger = logging.getLogger(__name__)
+from mobsf.MobSF.views.authentication import (
+    login_required,
+)
+from mobsf.MobSF.views.authorization import (
+    Permissions,
+    permission_required,
+)
 
 _FPID = "/system/fd_server"
 
@@ -141,6 +148,8 @@ def kill_avd(identifier, checksum):
         exp = excep.__doc__
         return print_n_send_error_response(request, msg, exp)
     
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def get_runtime_dependencies(request, api=False):
     """Get App runtime dependencies."""
@@ -164,6 +173,8 @@ def get_runtime_dependencies(request, api=False):
 # AJAX
 
 
+@login_required
+@permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def instrument(request, api=False):
     """Instrument app with frida."""
@@ -248,6 +259,7 @@ def instrument(request, api=False):
     return send_response(data, api)
 
 
+@login_required
 def live_api(request, api=False):
     try:
         if api:

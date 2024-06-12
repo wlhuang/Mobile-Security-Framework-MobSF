@@ -75,6 +75,7 @@ from mobsf.StaticAnalyzer.views.android.strings import (
     get_strings_metadata,
 )
 from mobsf.StaticAnalyzer.views.android.xapk import (
+    handle_aab,
     handle_split_apk,
     handle_xapk,
 )
@@ -94,9 +95,15 @@ from mobsf.StaticAnalyzer.views.common.shared_func import (
 from mobsf.StaticAnalyzer.views.common.appsec import (
     get_android_dashboard,
 )
+from mobsf.MobSF.views.authentication import (
+    login_required,
+)
+from mobsf.MobSF.views.authorization import (
+    Permissions,
+    has_permission,
+)
 
 logger = logging.getLogger(__name__)
-
 register.filter('key', key)
 register.filter('android_component', android_component)
 register.filter('relative_path', relative_path)
@@ -110,6 +117,7 @@ def timeout_func(request):
     logger.warning("Reload page to redo the analysis")
     os.kill(os.getpid(), signal.SIGKILL)
     
+@login_required
 def static_analyzer(request, checksum, api=False):
     """Do static analysis on an request and save to db."""
     try:
@@ -142,12 +150,9 @@ def static_analyzer(request, checksum, api=False):
                 api)
         typ = robj[0].SCAN_TYPE
         filename = robj[0].FILE_NAME
-        allowed_exts = (
-            '.apk', '.xapk', '.zip', '.apks',
-            '.jar', '.aar', '.so')
-        allowed_typ = [i.replace('.', '') for i in allowed_exts]
+        allowed_exts = tuple(f'.{i}' for i in settings.ANDROID_EXTS)
         if (not filename.lower().endswith(allowed_exts)
-                or typ not in allowed_typ):
+                or typ not in settings.ANDROID_EXTS):
             return print_n_send_error_response(
                 request,
                 'Invalid file extension or file type',
@@ -174,6 +179,11 @@ def static_analyzer(request, checksum, api=False):
             if not handle_split_apk(app_dic):
                 raise Exception('Invalid Split APK File')
             typ = 'apk'
+        elif typ == 'aab':
+            # Convert AAB to APK
+            if not handle_aab(app_dic):
+                raise Exception('Invalid AAB File')
+            typ = 'apk'
         if typ == 'apk':
             app_dic['app_file'] = app_dic['md5'] + '.apk'  # NEW FILENAME
             app_dic['app_path'] = (
@@ -186,6 +196,11 @@ def static_analyzer(request, checksum, api=False):
             if db_entry.exists() and not rescan:
                 context = get_context_from_db_entry(db_entry)
             else:
+                if not has_permission(request, Permissions.SCAN, api):
+                    return print_n_send_error_response(
+                        request,
+                        'Permission Denied',
+                        False)
                 # ANALYSIS BEGINS
                 app_dic['size'] = str(
                     file_size(app_dic['app_path'])) + 'MB'  # FILE SIZE
@@ -381,6 +396,11 @@ def static_analyzer(request, checksum, api=False):
                     app_dic['files'])
                 app_dic['zipped'] = pro_type
                 if valid and (pro_type in ['eclipse', 'studio']):
+                    if not has_permission(request, Permissions.SCAN, api):
+                        return print_n_send_error_response(
+                            request,
+                            'Permission Denied',
+                            False)
                     # ANALYSIS BEGINS
                     app_dic['size'] = str(
                         file_size(app_dic['app_path'])) + 'MB'  # FILE SIZE
