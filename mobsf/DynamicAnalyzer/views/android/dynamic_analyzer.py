@@ -60,6 +60,11 @@ analysis_queue = None
 queue_display = []
 current_live = [{'identifier': 'TESTINGDATA', 'checksum': 'TESTINGDATA'}]
 
+# Get MOBSF path from ENV
+mobsf_path = os.environ.get('MOBSF_PATH') 
+
+# Utilizing path for Frida
+directory_path = os.path.join(mobsf_path, 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others')
 
 
 
@@ -222,7 +227,7 @@ def select_frida_script_permissions(permissions):
         group = map_permissions_to_group(permission)
         #print(group)
         if group:
-            for filename in os.listdir('/home/dylan/Desktop/final/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir(directory_path):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -243,7 +248,7 @@ def select_frida_script_androidapis(androidapis):
         group = map_api_to_group(androidapi)
         #print(group)
         if group:
-            for filename in os.listdir('/home/dylan/Desktop/final/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir(directory_path):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -1056,7 +1061,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                 textsuggest = textsuggest + '\n // ' + scripts 
 
             for scripts in selectedscript:
-                file_path = '/home/dylan/Desktop/final/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others{}'.format(scripts)
+                file_path = os.path.join(mobsf_path, 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others{}'.format(scripts))
                 try:
                     with open(file_path, 'r') as file:
                             texting = file.read()
