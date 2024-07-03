@@ -451,13 +451,10 @@ def android_dynamic_analysis(request, api=False):
 def dynamic_analyzer(request, checksum, api=False):
     """Android Dynamic Analyzer Environment."""
     file_list_without_extension = []
-    text =""
+    text = ""
     apiKey = api_key()
     
-    
     try:
-
-
         identifier = None
         activities = None
         exported_activities = None
