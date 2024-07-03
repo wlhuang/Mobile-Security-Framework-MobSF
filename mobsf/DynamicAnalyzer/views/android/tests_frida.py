@@ -188,7 +188,8 @@ def instrument(request, api=False):
         global queue_display
         command = ["adb", "-s", deviceidentifier, "emu", "avd", "name"]
         result = subprocess.run(command, capture_output=True, text=True)
-        emulator_name = result.stdout.strip().splitlines()[0]
+        print(result)
+        emulator_name = deviceidentifier #result.stdout.strip().splitlines()[0]
         print(emulator_name)
         change_status(queue_display, emulator_name, md5_hash, 'ACTIVE, ANALYSIS-IN-PROGRESS')
         #time = Timer(30, terminate_analysis, args=[request], kwargs=None)  # Adjust timeout value as needed

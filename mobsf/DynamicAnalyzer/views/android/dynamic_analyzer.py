@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 from json import dump
 
+
 from shelljob import proc
 
 
@@ -221,7 +222,7 @@ def select_frida_script_permissions(permissions):
         group = map_permissions_to_group(permission)
         #print(group)
         if group:
-            for filename in os.listdir('/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir('/home/dylan/Desktop/final/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -242,7 +243,7 @@ def select_frida_script_androidapis(androidapis):
         group = map_api_to_group(androidapi)
         #print(group)
         if group:
-            for filename in os.listdir('/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
+            for filename in os.listdir('/home/dylan/Desktop/final/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others'):
                 if cut_string(filename) == group:
                     if filename in scripts:
                         pass
@@ -437,27 +438,32 @@ def android_dynamic_analysis(request, api=False):
     except Exception as exp:
         logger.exception('Dynamic Analysis')
         return print_n_send_error_response(request, exp, api)
+    
+
 
 @login_required
 @permission_required(Permissions.SCAN)
-def dynamic_analyzer(request, checksum, identifier, api=False):
+def dynamic_analyzer(request, checksum, api=False):
     """Android Dynamic Analyzer Environment."""
+    file_list_without_extension = []
+    text =""
     apiKey = api_key()
+    
+    
     try:
-        deviceidentifier = identifier
-        #print(identifier)
+
+
+        identifier = None
         activities = None
         exported_activities = None
-        textsuggest = ' // The suggested Frida scripts for dynamic analysis are: '
-        textscripts = ' '
-        file_list_without_extension = []
-        selected_script = []
         if api:
             reinstall = request.POST.get('re_install', '1')
             install = request.POST.get('install', '1')
+            avd_name = request.POST.get('avd_name', None)
         else:
             reinstall = request.GET.get('re_install', '1')
             install = request.GET.get('install', '1')
+            avd_name = request.GET.get('avd_name', None)
         if not is_md5(checksum):
             # We need this check since checksum is not validated
             # in REST API
@@ -472,12 +478,41 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                 'Cannot get package name from checksum',
                 api)
         logger.info('Creating Dynamic Analysis Environment for %s', package)
-        try:
-            #identifier = get_device()
-            identifier = deviceidentifier
-        except Exception:
-            return print_n_send_error_response(
-                request, get_android_dm_exception_msg(), api)
+        # Auto-start and auto-stop emulator logic
+        avds = list_avds()
+        logger.info(f"Available AVDs: {avds}")
+        running_emulators = list_running_emulators()
+        logger.info(f"Running Emulators: {running_emulators}")
+        running_avds = {get_avd_name(emulator): emulator for emulator in running_emulators}
+        logger.info(f"Running AVDs: {running_avds}")
+
+        emulator_started = False
+        if avd_name:
+            selected_avd = avd_name
+        else:
+            selected_avd = avds[0]
+            print(avds[0])
+            emulator_started = True
+            
+        if not selected_avd:
+            msg = 'No AVD specified and no AVDs are available. Here are the available AVDs: '
+            msg += ', '.join(avds) if avds else 'None'
+            if api:
+                return {'error': msg, 'available_avds': avds}
+            else:
+                return print_n_send_error_response(request, msg, api)
+
+        if selected_avd not in running_avds:
+            logger.info(f"Starting emulator for AVD: {selected_avd}")
+            start_emulator(selected_avd)
+            emulator_started = True
+
+        if not emulator_started:
+            identifier = get_device()
+        else:
+            # Wait for the emulator to be recognized by ADB
+            time.sleep(30)
+            identifier = get_device()
 
         # Get activities from the static analyzer results
         try:
@@ -503,11 +538,12 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                 permissionlist.append(i)
             print(permissionlist)
             selectedscript = select_frida_script_permissions(permissions)
-            if len(selected_script) == 0:
-                selected_script = selectedscript
+            print(selectedscript)
+            if len(selectedscript) == 0:
+                selectedscript = selectedscript
             else:
-                selected_script = selected_script + selectedscript
-            #print(selected_script)
+                selectedscript = selectedscript + selectedscript
+            #print(selectedscript)
         except ObjectDoesNotExist:
             logger.warning(
                 'Failed to get Permissions. '
@@ -520,11 +556,11 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
             keys = androidapis.keys()
             keys_list = list(keys)
             selectedscript = select_frida_script_androidapis(keys_list)
-            if len(selected_script) == 0:
-                selected_script = selectedscript
+            if len(selectedscript) == 0:
+                selectedscript = selectedscript
             else:
-                selected_script = selected_script + selectedscript
-            print(selected_script)
+                selectedscript = selectedscript + selectedscript
+            print(selectedscript)
         except ObjectDoesNotExist:
             logger.warning(
                 'Failed to get Android API. '
@@ -533,8 +569,8 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
         try:
             dex = static_android_db.APKID
             if len(dex) > 0:
-                if 'DEX_dex.js' not in selected_script:
-                    selected_script.append('DEX_dex.js')
+                if 'DEX_dex.js' not in selectedscript:
+                    selectedscript.append('DEX_dex.js')
         except ObjectDoesNotExist:
             logger.warning(
                 'Failed to get Dex Files. '
@@ -548,7 +584,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
             if playstoredetails:
                 results = find_matching_js_files(playstoredetails['description'], PLAYSTOREINFORMATION_GROUPS)
                 for files in results:
-                    selected_script.append(files)
+                    selectedscript.append(files)
         except ObjectDoesNotExist:
             logger.warning(
                 'Failed to get playstore details. '
@@ -557,12 +593,13 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
             pass
 
         try: 
-            selected_script = list(set(selected_script))
-            #print(selected_script)
-            for scripts in selected_script:
+            #
+            selectedscript = list(set(selectedscript))
+            #print(selectedscript)
+            for scripts in selectedscript:
                 textsuggest = textsuggest + '\n // ' + scripts 
 
-            for scripts in selected_script:
+            for scripts in selectedscript:
                 file_path = '{}'.format(scripts)
                 try:
                     with open(file_path, 'r') as file:
@@ -572,19 +609,21 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                     print("File not found:", file_path)
                 except Exception as e:
                     print("Error:", e)
-                file_list_without_extension = [filename.replace('.js', '') for filename in selected_script]
+                file_list_without_extension = [filename.replace('.js', '') for filename in selectedscript]
 
             text = textsuggest + textscripts
         except:
             pass
-
+        
         env = Environment(identifier)
+        print(identifier)
         if not env.connect_n_mount():
             msg = 'Cannot Connect to ' + identifier
             return print_n_send_error_response(request, msg, api)
         version = env.get_android_version()
         logger.info('Android Version identified as %s', version)
         xposed_first_run = False
+       
         if not env.is_mobsfyied(version):
             msg = ('This Android instance is not MobSFyed/Outdated.\n'
                    'MobSFying the android runtime environment')
@@ -606,6 +645,7 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
                    ' all Xposed modules. And finally'
                    ' restart the device once again.')
             return print_n_send_error_response(request, msg, api)
+        print("9")
         # Clean up previous analysis
         env.dz_cleanup(checksum)
         # Configure Web Proxy
@@ -647,12 +687,24 @@ def dynamic_analyzer(request, checksum, identifier, api=False):
         if api:
             return context
         return render(request, template, context)
+        
+
+    except TimeoutError as e:
+        logger.error(f"Dynamic analysis timed out for checksum {checksum}: {e}")
+        return print_n_send_error_response(request, "Dynamic analysis timed out", api)
+
     except Exception:
         logger.exception('Dynamic Analyzer')
-        return print_n_send_error_response(+
-            request,
-            'Dynamic Analysis Failed.',
-            api)
+        return print_n_send_error_response(request, 'Dynamic Analysis Failed.', api)
+    
+    finally:
+        # Stop the emulator if it was started by this function
+        if emulator_started:
+            running_emulators = list_running_emulators()
+            for emulator in running_emulators:
+                if get_avd_name(emulator) == selected_avd:
+                    logger.info(f"Stopping emulator: {emulator} for AVD: {selected_avd}")
+                    stop_emulator(emulator)
 
 
 @login_required
@@ -808,6 +860,7 @@ def android_dynamic_analysis_appsavailable(request, api=False):
         return print_n_send_error_response(request, exp, api)
 
 
+
 def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
     """Android Dynamic Analyzer Environment."""
     itemdata = {'identifier': identifier,'checksum': checksum}
@@ -887,7 +940,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
         textsuggest = ' // The suggested Frida scripts for dynamic analysis are: '
         textscripts = ' '
         file_list_without_extension = []
-        selected_script = []
+        selectedscript = []
         if api:
             reinstall = request.POST.get('re_install', '1')
             install = request.POST.get('install', '1')
@@ -943,11 +996,11 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                 permissionlist.append(i)
             print(permissionlist)
             selectedscript = select_frida_script_permissions(permissions)
-            if len(selected_script) == 0:
-                selected_script = selectedscript
+            if len(selectedscript) == 0:
+                selectedscript = selectedscript
             else:
-                selected_script = selected_script + selectedscript
-            #print(selected_script)
+                selectedscript = selectedscript + selectedscript
+            #print(selectedscript)
         except ObjectDoesNotExist:
             logger.warning(
                 'Failed to get Permissions. '
@@ -960,11 +1013,11 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
             keys = androidapis.keys()
             keys_list = list(keys)
             selectedscript = select_frida_script_androidapis(keys_list)
-            if len(selected_script) == 0:
-                selected_script = selectedscript
+            if len(selectedscript) == 0:
+                selectedscript = selectedscript
             else:
-                selected_script = selected_script + selectedscript
-            print(selected_script)
+                selectedscript = selectedscript + selectedscript
+            print(selectedscript)
         except ObjectDoesNotExist:
             logger.warning(
                 'Failed to get Android API. '
@@ -973,8 +1026,8 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
         try:
             dex = static_android_db.APKID
             if len(dex) > 0:
-                if 'DEX_dex.js' not in selected_script:
-                    selected_script.append('DEX_dex.js')
+                if 'DEX_dex.js' not in selectedscript:
+                    selectedscript.append('DEX_dex.js')
         except ObjectDoesNotExist:
             logger.warning(
                 'Failed to get Dex Files. '
@@ -988,7 +1041,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
             if playstoredetails:
                 results = find_matching_js_files(playstoredetails['description'], PLAYSTOREINFORMATION_GROUPS)
                 for files in results:
-                    selected_script.append(files)
+                    selectedscript.append(files)
         except ObjectDoesNotExist:
             logger.warning(
                 'Failed to get playstore details. '
@@ -997,13 +1050,13 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
             pass
 
         try: 
-            selected_script = list(set(selected_script))
-            #print(selected_script)
-            for scripts in selected_script:
+            selectedscript = list(set(selectedscript))
+            #print(selectedscript)
+            for scripts in selectedscript:
                 textsuggest = textsuggest + '\n // ' + scripts 
 
-            for scripts in selected_script:
-                file_path = '/home/live/Desktop/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others/{}'.format(scripts)
+            for scripts in selectedscript:
+                file_path = '/home/dylan/Desktop/final/Mobile-Security-Framework-MobSF/mobsf/DynamicAnalyzer/tools/frida_scripts/android/others{}'.format(scripts)
                 try:
                     with open(file_path, 'r') as file:
                             texting = file.read()
@@ -1012,7 +1065,7 @@ def dynamic_analyzer_appsavailable(request, checksum, identifier, api=False):
                     print("File not found:", file_path)
                 except Exception as e:
                     print("Error:", e)
-                file_list_without_extension = [filename.replace('.js', '') for filename in selected_script]
+                file_list_without_extension = [filename.replace('.js', '') for filename in selectedscript]
 
             text = textsuggest + textscripts
         except:

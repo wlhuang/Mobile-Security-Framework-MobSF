@@ -105,9 +105,10 @@ def execute_adb(request, api=False):
     data = {'status': 'ok', 'message': ''}
     cmd = request.POST['cmd']
     if cmd:
+        print('device:'+get_device())
         args = [get_adb(),
                 '-s',
-                get_device()]
+                get_device()] #set this to instance of
         try:
             proc = subprocess.Popen(
                 args + cmd.split(' '),  # lgtm [py/command-line-injection]
@@ -283,7 +284,24 @@ def touch(request):
     return send_response(data)
 # AJAX
 
+def list_running_emulators():            #L's changes gets list o instances of running avds
+    result = subprocess.run(['adb', 'devices'], stdout=subprocess.PIPE)
+    devices = result.stdout.decode('utf-8').splitlines()
+    emulators = [line.split()[0] for line in devices if 'emulator' in line]
+    return emulators
 
+def get_avd_name(emulator_list):               #l's chnages converts instances to proper names
+    avd_name_list = []
+    for i in emulator_list:
+        emulator_id = i
+        result = subprocess.run(['adb', '-s', emulator_id, 'shell', 'getprop'], stdout=subprocess.PIPE)
+        properties = result.stdout.decode('utf-8').splitlines()
+        for prop in properties:
+            if 'ro.kernel.qemu.avd_name' in prop:
+                avd_name_list.append(prop.split(': ')[1].strip('[]'))
+                return avd_name_list
+        return None
+    
 @login_required
 @permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
@@ -292,16 +310,26 @@ def mobsf_ca(request, api=False):
     data = {}
     try:
         env = Environment()
+        live_emulator_list = get_avd_name(list_running_emulators())
+        print('emulators: ', live_emulator_list)
+        emulator = request.POST['name']
         action = request.POST['action']
-        if action == 'install':
-            env.install_mobsf_ca(action)
+        print('target emulator:'+ emulator)
+        if action == 'install' and emulator in live_emulator_list:
+            env.install_mobsf_ca(action, emulator)
             data = {'status': 'ok', 'message': 'installed'}
-        elif action == 'remove':
-            env.install_mobsf_ca(action)
+        elif action == 'remove' and emulator in live_emulator_list:
+            env.install_mobsf_ca(action, emulator)
             data = {'status': 'ok', 'message': 'removed'}
         else:
             data = {'status': 'failed',
                     'message': 'Action not supported'}
+        
+    except TypeError as exp:
+        if live_emulator_list is None:
+            live_emulator_list = 'there is no existing emulators that are alive'
+        logger.exception('MobSF RootCA Handler')
+        data = {'status': 'failed', 'message': 'please spceify the emulator to install the root_ca on.', 'live emulators':live_emulator_list}
     except Exception as exp:
         logger.exception('MobSF RootCA Handler')
         data = {'status': 'failed', 'message': str(exp)}

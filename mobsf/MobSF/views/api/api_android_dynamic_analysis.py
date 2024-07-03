@@ -16,6 +16,8 @@ from mobsf.DynamicAnalyzer.views.common import (
     device,
     frida,
 )
+from EmulatorLauncher import list_avds, list_running_emulators, get_avd_name, start_emulator, stop_emulator
+
 
 
 # Dynamic Analyzer APIs
@@ -33,6 +35,7 @@ def api_get_apps(request):
 @csrf_exempt
 def api_start_analysis(request):
     """POST - Start Dynamic Analysis."""
+    avds = list_avds()
     if 'hash' not in request.POST:
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
@@ -40,10 +43,16 @@ def api_start_analysis(request):
         request,
         request.POST['hash'],
         True)
+    
+    if 'avd_name' not in request.POST:
+        pass
+    
+    elif request.POST.get('avd_name') not in avds:
+         return make_api_response({'error': "Invalid AVD name specified.", 'available_avds': avds}, 422)
+
     if 'error' in resp:
         return make_api_response(resp, 500)
     return make_api_response(resp, 200)
-
 
 @request_method(['POST'])
 @csrf_exempt
@@ -104,12 +113,16 @@ def api_adb_execute(request):
 @csrf_exempt
 def api_root_ca(request):
     """POST - MobSF CA actions API."""
-    if 'action' not in request.POST:
+    print("here 1")
+    if 'action' not in request.POST or 'name' not in request.POST:    
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
+    print("here 2.5")
     resp = operations.mobsf_ca(request, True)
     if resp['status'] == 'ok':
+        print("here 3")
         return make_api_response(resp, 200)
+    print("here 2")
     return make_api_response(resp, 500)
 
 
@@ -191,7 +204,9 @@ def api_instrument(request):
         'hash',
         'default_hooks',
         'auxiliary_hooks',
-        'frida_code'}
+        'frida_code'
+        'deviceidentifier'
+        }
     if set(request.POST) < params:
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
