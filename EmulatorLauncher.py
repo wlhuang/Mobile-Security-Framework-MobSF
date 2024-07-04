@@ -23,6 +23,17 @@ def get_avd_name(emulator_id):
         return avd_name
     return None
 
+def emulator_name_to_instance(emulator):
+        emulator_name_list = []
+        emulator_instance_list = []
+        for i in list_running_emulators():
+            emulator_instance_list.append(i)
+            emulator_name_list.append(get_avd_name(i))
+        if emulator in emulator_name_list:
+            return emulator_instance_list[emulator_name_list.index(emulator)]
+        else:
+            return "emulator is not live or does not exist"
+
 def start_emulator(avd_name):
     print(f"Attempting to start emulator with AVD name: {avd_name}")
     subprocess.Popen(['emulator', '-avd', avd_name])

@@ -100,9 +100,10 @@ def api_screenshot(request):
 @csrf_exempt
 def api_adb_execute(request):
     """POST - ADB execute API."""
-    if 'cmd' not in request.POST or 'deviceidentifier' not in request.POST:
+    if 'cmd' not in request.POST or 'deviceidentifier' not in request.POST:      #
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
+    print('here')
     resp = operations.execute_adb(request, True)
     if resp['status'] == 'ok':
         return make_api_response(resp, 200)

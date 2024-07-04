@@ -39,6 +39,7 @@ from mobsf.MobSF.views.authorization import (
 from EmulatorLauncher import (
     list_running_emulators,
     get_avd_name,
+    emulator_name_to_instance,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,6 +101,7 @@ def mobsfy(request, api=False):
 
 # AJAX
 
+        
 
 @login_required
 @permission_required(Permissions.SCAN)
@@ -108,13 +110,13 @@ def execute_adb(request, api=False):
     """Execute ADB Commands."""
     data = {'status': 'ok', 'message': ''}
     cmd = request.POST['cmd']
-    emulator = request.POST['deviceidentifier]']
-    live_emulator_list = get_avd_name(list_running_emulators())
-    if cmd and emulator in live_emulator_list:
-        print('device:'+get_device())
+    emulator_name = request.POST['deviceidentifier']
+    print(emulator_name)
+    print(emulator_name_to_instance(emulator_name))
+    if cmd:
         args = [get_adb(),
                 '-s',
-                emulator] #set this to instance of  get_device()
+                emulator_name_to_instance(emulator_name)] #set this to instance of
         try:
             proc = subprocess.Popen(
                 args + cmd.split(' '),  # lgtm [py/command-line-injection]
