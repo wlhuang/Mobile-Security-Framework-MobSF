@@ -684,7 +684,7 @@ def dynamic_analyzer(request, checksum, api=False):
                    'title': 'Dynamic Analyzer',
                    'text': text,
                    'scripts': file_list_without_extension,
-                   'devicecurrentlyinused': identifier}
+                   'device_used': selected_avd}
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
         if api:
             return context

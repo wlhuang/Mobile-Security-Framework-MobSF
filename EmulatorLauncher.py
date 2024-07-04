@@ -16,11 +16,10 @@ def list_running_emulators():
     return emulators
 
 def get_avd_name(emulator_id):
-    result = subprocess.run(['adb', '-s', emulator_id, 'shell', 'getprop'], stdout=subprocess.PIPE)
-    properties = result.stdout.decode('utf-8').splitlines()
-    for prop in properties:
-        if 'ro.kernel.qemu.avd_name' in prop:
-            return prop.split(': ')[1].strip('[]')
+    result = subprocess.run(['adb', '-s', emulator_id, 'emu', 'avd', 'name'], stdout=subprocess.PIPE, text=True)
+    output = result.stdout.splitlines()
+    if output:
+        return output
     return None
 
 def start_emulator(avd_name):
