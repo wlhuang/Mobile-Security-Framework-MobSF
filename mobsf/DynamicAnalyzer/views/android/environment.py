@@ -235,16 +235,16 @@ class Environment:
 
     def configure_proxy(self, project, request):
         """HTTPS Proxy."""
-        self.install_mobsf_ca('install', None)
+        self.install_mobsf_ca('install')
         proxy_port = settings.PROXY_PORT
         logger.info('Starting HTTPS Proxy on %s', proxy_port)
         stop_httptools(get_http_tools_url(request))
         start_proxy(proxy_port, project)
 
-    def install_mobsf_ca(self, action, emulator):
+    def install_mobsf_ca(self, action):
         """Install or Remove MobSF Root CA."""
         mobsf_ca = get_ca_file()
-        ca_file = emulator      #L's Change: set the file to push to currently running emulator
+        ca_file = None
         if is_file_exists(mobsf_ca):
             ca_construct = '{}.0'
             pem = open(mobsf_ca, 'rb')
@@ -603,7 +603,7 @@ class Environment:
         """Setup MobSF agents."""
         create_ca()
         # Install MITM RootCA
-        self.install_mobsf_ca('install',None)
+        self.install_mobsf_ca('install')
         if agent == 'frida':
             agent_file = '.mobsf-f'
             agent_str = self.frida_str

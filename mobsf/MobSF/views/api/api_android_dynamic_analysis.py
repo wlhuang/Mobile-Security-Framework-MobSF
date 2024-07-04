@@ -100,7 +100,7 @@ def api_screenshot(request):
 @csrf_exempt
 def api_adb_execute(request):
     """POST - ADB execute API."""
-    if 'cmd' not in request.POST:
+    if 'cmd' not in request.POST or 'deviceidentifier' not in request.POST:
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
     resp = operations.execute_adb(request, True)
@@ -113,16 +113,12 @@ def api_adb_execute(request):
 @csrf_exempt
 def api_root_ca(request):
     """POST - MobSF CA actions API."""
-    print("here 1")
-    if 'action' not in request.POST or 'name' not in request.POST:    
+    if 'action' not in request.POST or 'deviceidentifier' not in request.POST:    
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
-    print("here 2.5")
     resp = operations.mobsf_ca(request, True)
     if resp['status'] == 'ok':
-        print("here 3")
         return make_api_response(resp, 200)
-    print("here 2")
     return make_api_response(resp, 500)
 
 
