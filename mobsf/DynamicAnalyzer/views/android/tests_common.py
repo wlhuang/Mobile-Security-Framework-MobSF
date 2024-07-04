@@ -39,6 +39,11 @@ from mobsf.MobSF.views.authorization import (
     Permissions,
     permission_required,
 )
+from EmulatorLauncher import (
+    list_running_emulators,
+    get_avd_name,
+    emulator_name_to_instance,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +60,19 @@ def start_activity(request, api=False):
         env = Environment()
         activity = request.POST['activity']
         md5_hash = request.POST['hash']
+        emulator = request.POST['deviceidentifier']
+    
+        emulator_list = []
+        for i in list_running_emulators():
+            emulator_list.append(get_avd_name(i))
+        if emulator in emulator_list:
+            env = Environment(identifier=emulator) 
+        else:
+            data = {'status': 'failed',
+                    'message': 'Please use a live emulator',
+                    'live emulators':emulator_list}
+            return send_response(data, api)
+        
 
         valid_md5 = is_md5(md5_hash)
         valid_act = re.match(r'^[\w]+(\.[\w]+)*$', activity)
@@ -88,9 +106,23 @@ def activity_tester(request, api=False):
     """Exported & non exported activity Tester."""
     data = {}
     try:
-        env = Environment()
+        
         test = request.POST['test']
+        emulator = request.POST['deviceidentifier']
         md5_hash = request.POST['hash']
+
+
+        emulator_list = []
+        for i in list_running_emulators():
+            emulator_list.append(get_avd_name(i))
+        if emulator in emulator_list:
+            env = Environment(identifier=emulator)
+        else:
+            data = {'status': 'failed',
+                    'message': 'Please use a live emulator',
+                    'live emulators':emulator_list}
+            return send_response(data, api)
+        
         if not is_md5(md5_hash):
             return invalid_params(api)
         app_dir = os.path.join(settings.UPLD_DIR, md5_hash + '/')
@@ -139,6 +171,7 @@ def activity_tester(request, api=False):
     except Exception as exp:
         logger.exception('%sActivity tester', iden)
         data = {'status': 'failed', 'message': str(exp)}
+        
     return send_response(data, api)
 
 # AJAX
@@ -236,10 +269,21 @@ def tls_tests(request, api=False):
     data = {}
     package = None
     try:
+        emulator = request.POST['deviceidentifier']
         test_duration = 25
         test_package = 'tls_tests'
-        env = Environment()
         md5_hash = request.POST['hash']
+        emulator_list = []
+        for i in list_running_emulators():
+            emulator_list.append(get_avd_name(i))
+        if emulator in emulator_list:
+            env = Environment(identifier=emulator)
+        else:
+            data = {'status': 'failed',
+                    'message': 'Please use a live emulator',
+                    'live emulators':emulator_list}
+            return send_response(data, api)
+    
         if not is_md5(md5_hash):
             return invalid_params(api)
         package = get_package_name(md5_hash)

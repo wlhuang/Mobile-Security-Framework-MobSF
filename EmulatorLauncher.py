@@ -32,7 +32,7 @@ def emulator_name_to_instance(emulator):
         if emulator in emulator_name_list:
             return emulator_instance_list[emulator_name_list.index(emulator)]
         else:
-            return "emulator is not live or does not exist"
+            return emulator
 
 def start_emulator(avd_name):
     print(f"Attempting to start emulator with AVD name: {avd_name}")

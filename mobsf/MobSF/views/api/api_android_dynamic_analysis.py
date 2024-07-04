@@ -100,10 +100,9 @@ def api_screenshot(request):
 @csrf_exempt
 def api_adb_execute(request):
     """POST - ADB execute API."""
-    if 'cmd' not in request.POST or 'deviceidentifier' not in request.POST:      #
+    if 'cmd' not in request.POST or 'deviceidentifier' not in request.POST:
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
-    print('here')
     resp = operations.execute_adb(request, True)
     if resp['status'] == 'ok':
         return make_api_response(resp, 200)
@@ -127,7 +126,7 @@ def api_root_ca(request):
 @csrf_exempt
 def api_global_proxy(request):
     """POST - MobSF Global Proxy API."""
-    if 'action' not in request.POST:
+    if 'action' not in request.POST or 'deviceidentifier' not in request.POST:
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
     resp = operations.global_proxy(request, True)
@@ -141,7 +140,7 @@ def api_global_proxy(request):
 @csrf_exempt
 def api_act_tester(request):
     """POST - Activity Tester."""
-    params = {'test', 'hash'}
+    params = {'test', 'hash', 'deviceidentifier'}
     if set(request.POST) < params:
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
@@ -155,7 +154,7 @@ def api_act_tester(request):
 @csrf_exempt
 def api_start_activity(request):
     """POST - Start Activity."""
-    params = {'activity', 'hash'}
+    params = {'activity', 'hash', 'deviceidentifier'}
     if set(request.POST) < params:
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
@@ -169,7 +168,8 @@ def api_start_activity(request):
 @csrf_exempt
 def api_tls_tester(request):
     """POST - TLS/SSL Security Tester."""
-    if 'hash' not in request.POST:
+    params = {'hash', 'deviceidentifier'}
+    if set(request.POST) < params:
         return make_api_response(
             {'error': 'Missing Parameters'}, 422)
     resp = tests_common.tls_tests(request, True)

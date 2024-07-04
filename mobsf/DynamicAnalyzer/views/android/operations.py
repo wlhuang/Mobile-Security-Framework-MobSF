@@ -111,8 +111,6 @@ def execute_adb(request, api=False):
     data = {'status': 'ok', 'message': ''}
     cmd = request.POST['cmd']
     emulator_name = request.POST['deviceidentifier']
-    print(emulator_name)
-    print(emulator_name_to_instance(emulator_name))
     if cmd:
         args = [get_adb(),
                 '-s',
@@ -302,7 +300,7 @@ def mobsf_ca(request, api=False):
         
         emulator = request.POST['deviceidentifier']
         action = request.POST['action']
-        
+
         emulator_list = []
         for i in list_running_emulators():
             emulator_list.append(get_avd_name(i))
@@ -311,12 +309,12 @@ def mobsf_ca(request, api=False):
         else:
             data = {'status': 'failed',
                     'message': 'Please use a live emulator',
-                    'live emulators':live_emulator_list}
+                    'live emulators':emulator_list}
             
-        if action == 'install' and emulator in live_emulator_list:
+        if action == 'install':
             env.install_mobsf_ca(action)
             data = {'status': 'ok', 'message': 'installed'}
-        elif action == 'remove' and emulator in live_emulator_list:
+        elif action == 'remove':
             env.install_mobsf_ca(action)
             data = {'status': 'ok', 'message': 'removed'}
         
@@ -339,12 +337,15 @@ def mobsf_ca(request, api=False):
 def global_proxy(request, api=False):
     """Set/unset global proxy."""
     data = {}
-    device = request.POST.get('deviceidentifier')
-    print(device)
+
     try:
-        env = Environment(device)
-        version = env.get_android_version()
+        emulator = request.POST['deviceidentifier']
         action = request.POST['action']
+        emulator_instance = emulator_name_to_instance(emulator)
+
+        env = Environment(identifier=emulator_instance)
+        version = env.get_android_version()
+        
         if action == 'set':
             env.set_global_proxy(version)
             data = {'status': 'ok', 'message': 'set'}
