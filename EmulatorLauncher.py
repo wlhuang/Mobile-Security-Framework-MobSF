@@ -34,11 +34,6 @@ def emulator_name_to_instance(emulator):
         else:
             return emulator
 
-def start_emulator(avd_name):
-    print(f"Attempting to start emulator with AVD name: {avd_name}")
-    subprocess.Popen(['emulator', '-avd', avd_name])
-    time.sleep(30)  # Adjust sleep duration as necessary
-
 def stop_emulator(emulator_id):
     subprocess.run(['adb', '-s', emulator_id, 'emu', 'kill'])
 
@@ -70,11 +65,27 @@ def snapshot_retrieve(avd_name):
         pass
 
 def start_emulator(avd_name):
+    if emulator_name_to_instance(avd_name) in list_running_emulators():
+        return  # Emulator is already running
+
     try:
-        emulator_command = ["emulator", "-avd", avd_name, "-writable-system", "-snapshot", snapshot_retrieve(avd_name)]
-        subprocess.Popen(emulator_command)
+        snapshot = snapshot_retrieve(avd_name)
+        emulator_command = ["emulator", "-avd", avd_name, "-writable-system", "-snapshot", snapshot]
     except:
         emulator_command = ["emulator", "-avd", avd_name, "-writable-system", "-no-snapshot"]
-        subprocess.Popen(emulator_command)
+    
+    process = subprocess.Popen(emulator_command)
+    
+    # Wait for the emulator to start
+    for _ in range(30):  # 30 attempts, 2 seconds each
+        if emulator_name_to_instance(avd_name) in list_running_emulators():
+            return
+        time.sleep(2)
+    
+    # If we've reached here, the emulator didn't start
+    process.kill()
+    raise Exception(f"Failed to start emulator for AVD: {avd_name}")
+
+# Note: We're not implementing a stop_emulator function here because we want to keep the emulators running for subsequent scans
 
 

@@ -18,6 +18,8 @@ from mobsf.DynamicAnalyzer.views.common import (
 )
 from EmulatorLauncher import list_avds, list_running_emulators, get_avd_name, start_emulator, stop_emulator
 
+from mobsf.DynamicAnalyzer.views.android.EmulatorManager import emulator_manager
+
 
 
 # Dynamic Analyzer APIs
@@ -37,22 +39,25 @@ def api_start_analysis(request):
     """POST - Start Dynamic Analysis."""
     avds = list_avds()
     if 'hash' not in request.POST:
-        return make_api_response(
-            {'error': 'Missing Parameters'}, 422)
-    resp = dynamic_analyzer.dynamic_analyzer(
-        request,
-        request.POST['hash'],
-        True)
+        return make_api_response({'error': 'Missing Parameters'}, 422)
     
-    if 'avd_name' not in request.POST:
-        pass
+    hash_value = request.POST['hash']
+    avd_name = request.POST.get('avd_name')
     
-    elif request.POST.get('avd_name') not in avds:
-         return make_api_response({'error': "Invalid AVD name specified.", 'available_avds': avds}, 422)
+    if not avd_name:
+        return make_api_response({'error': "AVD name must be specified.", 'available_avds': avds}, 422)
+    
+    if avd_name not in avds:
+        return make_api_response({'error': "Invalid AVD name specified.", 'available_avds': avds}, 422)
 
-    if 'error' in resp:
-        return make_api_response(resp, 500)
-    return make_api_response(resp, 200)
+    # Queue the scan for the specified emulator
+    scan_params = {
+        'request': request,
+        'hash': hash_value
+    }
+    emulator_manager.queue_scan(avd_name, scan_params)
+
+    return make_api_response({'message': f'Analysis queued successfully for {avd_name}'}, 202)
 
 @request_method(['POST'])
 @csrf_exempt
