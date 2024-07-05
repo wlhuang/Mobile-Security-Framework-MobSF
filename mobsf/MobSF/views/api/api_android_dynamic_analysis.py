@@ -56,8 +56,12 @@ def api_start_analysis(request):
         'hash': hash_value
     }
     emulator_manager.queue_scan(avd_name, scan_params)
+    resp = dynamic_analyzer.dynamic_analyzer(
+        request,
+        request.POST['hash'],
+        True)
 
-    return make_api_response({'message': f'Analysis queued successfully for {avd_name}'}, 202)
+    return make_api_response(resp, 200)
 
 @request_method(['POST'])
 @csrf_exempt
