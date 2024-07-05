@@ -3,12 +3,9 @@
 # Function to handle cleanup on script exit
 cleanup() {
     echo "Cleaning up..."
-    # Find the PID of the process using the specified port and kill it
-    pid=$(lsof -ti:$port)
-    if [ -n "$pid" ]; then
-        kill -9 $pid
-        echo "Killed process using port $port"
-    fi
+    # Use fuser to kill the process using the specified port
+    fuser -k -n tcp $port
+    echo "Killed process using port $port"
     exit 0
 }
 
