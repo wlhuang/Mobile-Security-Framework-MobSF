@@ -324,7 +324,7 @@ def mobsf_ca(request, api=False):
         if live_emulator_list is None:
             live_emulator_list = 'there is no existing emulators that are alive'
         logger.exception('MobSF RootCA Handler')
-        data = {'status': 'failed', 'message': 'please spceify the emulator to install the root_ca on.', 'live emulators':live_emulator_list}
+        data = {'status': 'failed', 'message': 'please specify the emulator to install the root_ca on.', 'live emulators':live_emulator_list}
     except Exception as exp:
         logger.exception('MobSF RootCA Handler')
         data = {'status': 'failed', 'message': str(exp)}

@@ -66,7 +66,7 @@ def start_activity(request, api=False):
         for i in list_running_emulators():
             emulator_list.append(get_avd_name(i))
         if emulator in emulator_list:
-            env = Environment(identifier=emulator) 
+            env = Environment(identifier=emulator_name_to_instance(emulator)) 
         else:
             data = {'status': 'failed',
                     'message': 'Please use a live emulator',
@@ -116,7 +116,7 @@ def activity_tester(request, api=False):
         for i in list_running_emulators():
             emulator_list.append(get_avd_name(i))
         if emulator in emulator_list:
-            env = Environment(identifier=emulator)
+            env = Environment(identifier=emulator_name_to_instance(emulator))
         else:
             data = {'status': 'failed',
                     'message': 'Please use a live emulator',
