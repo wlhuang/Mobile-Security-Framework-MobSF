@@ -310,6 +310,7 @@ def mobsf_ca(request, api=False):
             data = {'status': 'failed',
                     'message': 'Please use a live emulator',
                     'live emulators':emulator_list}
+            return send_response(data, api)
             
         if action == 'install':
             env.install_mobsf_ca(action)
@@ -343,7 +344,17 @@ def global_proxy(request, api=False):
         action = request.POST['action']
         emulator_instance = emulator_name_to_instance(emulator)
 
-        env = Environment(identifier=emulator_instance)
+        emulator_list = []
+        for i in list_running_emulators():
+            emulator_list.append(get_avd_name(i))
+        if emulator in emulator_list:
+            env = Environment(identifier=emulator_instance)
+        else:
+            data = {'status': 'failed',
+                    'message': 'Please use a live emulator',
+                    'live emulators':emulator_list}
+            return send_response(data, api)
+        
         version = env.get_android_version()
         
         if action == 'set':

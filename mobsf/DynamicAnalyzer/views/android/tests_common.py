@@ -277,8 +277,7 @@ def tls_tests(request, api=False):
         for i in list_running_emulators():
             emulator_list.append(get_avd_name(i))
         if emulator in emulator_list:
-            env = Environment(identifier=emulator)
-        else:
+            env = Environment(identifier=emulator_name_to_instance(emulator))
             data = {'status': 'failed',
                     'message': 'Please use a live emulator',
                     'live emulators':emulator_list}
