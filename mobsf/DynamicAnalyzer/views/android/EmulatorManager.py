@@ -65,9 +65,10 @@ class EmulatorManager:
                 logger.error(f"Scan failed for {avd_name}: {resp['error']}")
             else:
                 logger.info(f"Scan completed successfully for {avd_name}")
+            return resp
         except Exception as e:
             logger.error(f"Error in run_scan for {avd_name}: {str(e)}")
-            # You might want to implement some error recovery here
+            return None
 
 # Create a global instance of the EmulatorManager
 emulator_manager = EmulatorManager()
