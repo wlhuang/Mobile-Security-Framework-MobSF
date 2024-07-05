@@ -448,7 +448,7 @@ def android_dynamic_analysis(request, api=False):
 
 @login_required
 @permission_required(Permissions.SCAN)
-def dynamic_analyzer(request, checksum, api=False):
+def dynamic_analyzer(request, checksum, api=False, avd_name=None):
     """Android Dynamic Analyzer Environment."""
     file_list_without_extension = []
     text = ""

@@ -47,18 +47,27 @@ class EmulatorManager:
         emulator['running'] = False
 
     def run_scan(self, avd_name, scan_params):
-        # Start the emulator if it's not running
-        if emulator_name_to_instance(avd_name) not in list_running_emulators():
-            start_emulator(avd_name)
+        try:
+            # Start the emulator if it's not running
+            emulator_instance = emulator_name_to_instance(avd_name)
+            if emulator_instance not in list_running_emulators():
+                print(f"Starting emulator for {avd_name}")  # Debug print
+                start_emulator(avd_name)
+            else:
+                print(f"Emulator {avd_name} is already running")  # Debug print
 
-        # Run the dynamic analyzer
-        resp = dynamic_analyzer(scan_params['request'], scan_params['hash'], True, avd_name)
+            # Run the dynamic analyzer
+            print(f"Running dynamic analyzer for {avd_name}")  # Debug print
+            resp = dynamic_analyzer(scan_params['request'], scan_params['hash'], True, avd_name)
 
-        # Process the result (you can customize this part)
-        if 'error' in resp:
-            logger.error(f"Scan failed for {avd_name}: {resp['error']}")
-        else:
-            logger.info(f"Scan completed successfully for {avd_name}")
+            # Process the result (you can customize this part)
+            if 'error' in resp:
+                logger.error(f"Scan failed for {avd_name}: {resp['error']}")
+            else:
+                logger.info(f"Scan completed successfully for {avd_name}")
+        except Exception as e:
+            logger.error(f"Error in run_scan for {avd_name}: {str(e)}")
+            # You might want to implement some error recovery here
 
 # Create a global instance of the EmulatorManager
 emulator_manager = EmulatorManager()
