@@ -57,7 +57,7 @@ def api_start_analysis(request):
     }
     emulator_manager.queue_scan(avd_name, scan_params)
 
-    return make_api_response(emulator_manager.results.get(avd_name), 200)
+    return make_api_response({'message': f'Analysis queued successfully for {avd_name}'}, 202)
 
 @request_method(['POST'])
 @csrf_exempt
