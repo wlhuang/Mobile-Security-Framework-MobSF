@@ -18,8 +18,8 @@ def list_running_emulators():
 def get_avd_name(emulator_id):
     result = subprocess.run(['adb', '-s', emulator_id, 'emu', 'avd', 'name'], stdout=subprocess.PIPE, text=True)
     output = result.stdout.splitlines()
-    avd_name = output[0]
     if output:
+        avd_name = output[0].strip()
         return avd_name
     return None
 
