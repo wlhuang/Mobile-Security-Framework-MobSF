@@ -21,7 +21,6 @@ from EmulatorLauncher import list_avds, list_running_emulators, get_avd_name, st
 from mobsf.DynamicAnalyzer.views.android.EmulatorManager import emulator_manager
 
 
-
 # Dynamic Analyzer APIs
 @request_method(['GET'])
 @csrf_exempt
@@ -55,9 +54,24 @@ def api_start_analysis(request):
         'request': request,
         'hash': hash_value
     }
-    emulator_manager.queue_scan(avd_name, scan_params)
+    task_id = emulator_manager.queue_scan(avd_name, scan_params)
 
-    return make_api_response({'message': f'Analysis queued successfully for {avd_name}'}, 202)
+    return make_api_response({'message': f'Analysis queued successfully for {avd_name}', 'task_id': task_id}, 202)
+
+@request_method(['GET'])
+def api_get_analysis_result(request):
+    """GET - Get Dynamic Analysis Result."""
+    task_id = request.GET.get('task_id')
+    if not task_id:
+        return make_api_response({'error': 'Missing task_id parameter'}, 422)
+
+    result = emulator_manager.get_scan_result(task_id)
+    if result is None:
+        return make_api_response({'message': 'Analysis still in progress'}, 202)
+    elif 'error' in result:
+        return make_api_response(result, 500)
+    else:
+        return make_api_response(result, 200)
 
 @request_method(['POST'])
 @csrf_exempt
