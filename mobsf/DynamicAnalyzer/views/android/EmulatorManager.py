@@ -59,16 +59,15 @@ class EmulatorManager:
             # Run the dynamic analyzer
             print(f"Running dynamic analyzer for {avd_name}")  # Debug print
             resp = dynamic_analyzer(scan_params['request'], scan_params['hash'], True, avd_name)
-
+            self.results[avd_name] = resp
             # Process the result (you can customize this part)
             if 'error' in resp:
                 logger.error(f"Scan failed for {avd_name}: {resp['error']}")
             else:
                 logger.info(f"Scan completed successfully for {avd_name}")
-            return resp
         except Exception as e:
             logger.error(f"Error in run_scan for {avd_name}: {str(e)}")
-            return None
+            # You might want to implement some error recovery here
 
 # Create a global instance of the EmulatorManager
 emulator_manager = EmulatorManager()

@@ -56,9 +56,8 @@ def api_start_analysis(request):
         'hash': hash_value
     }
     emulator_manager.queue_scan(avd_name, scan_params)
-    resp = emulator_manager.get_result(avd_name)
 
-    return make_api_response(resp , 200)
+    return make_api_response(emulator_manager.results.get(avd_name), 200)
 
 @request_method(['POST'])
 @csrf_exempt
