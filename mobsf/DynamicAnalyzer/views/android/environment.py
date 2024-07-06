@@ -16,7 +16,8 @@ from OpenSSL import crypto
 
 from frida import __version__ as frida_version
 
-from mobsf.DynamicAnalyzer.views.android.EmulatorManager import get_avd_name
+from mobsf.DynamicAnalyzer.views.android.EmulatorManager import *
+from EmulatorLauncher import *
 
 from mobsf.DynamicAnalyzer.tools.webproxy import (
     create_ca,
@@ -243,7 +244,7 @@ class Environment:
         stop_httptools(get_http_tools_url(request))
         start_proxy(proxy_port, project)
 
-    def install_mobsf_ca(self, action):
+    def install_mobsf_ca(self, avd_name, action):
         """Install or Remove MobSF Root CA."""
         mobsf_ca = get_ca_file()
         ca_file = None
@@ -261,7 +262,6 @@ class Environment:
             logger.warning('mitmproxy root CA is not generated yet.')
             return
         if action == 'install':
-            avd_name = get_avd_name()
             logger.info('[%s] Installing MobSF RootCA', avd_name)
             self.adb_command(['push',mobsf_ca ,ca_file])
             self.adb_command(['chmod', '644', ca_file], True)

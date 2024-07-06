@@ -99,9 +99,3 @@ class EmulatorManager:
 
 # Create a global instance of the EmulatorManager
 emulator_manager = EmulatorManager()
-
-def get_avd_name():
-        for avd_name, emulator in emulator_manager.emulators.items():
-            if emulator['running']:
-                return avd_name
-        return None
