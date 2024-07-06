@@ -75,7 +75,6 @@ class Environment:
         if not self.identifier:
             return False
         avd_name = get_avd_name(self.identifier)
-        print("123456789", avd_name)
         logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
         self.run_subprocess_verify_output([get_adb(),
                                            'connect',
@@ -89,7 +88,8 @@ class Environment:
         self.adb_command(['start-server'], False, True)
         logger.info('ADB Restarted')
         self.wait(2)
-        logger.info('Connecting to Android %s', self.identifier)
+        avd_name = get_avd_name(self.identifier)
+        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
         if not self.run_subprocess_verify_output([get_adb(),
                                                  'connect',
                                                   self.identifier]):
@@ -100,7 +100,7 @@ class Environment:
                                                   self.identifier,
                                                   'root']):
             return False
-        logger.info('Reconnecting to Android Device')
+        logger.info('[%s] Reconnecting to Android Device', avd_name)
         # connect again with root adb
         if not self.run_subprocess_verify_output([get_adb(),
                                                   'connect',
