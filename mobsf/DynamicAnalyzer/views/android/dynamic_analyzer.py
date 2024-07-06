@@ -698,15 +698,6 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
     except Exception:
         logger.exception('Dynamic Analyzer')
         return print_n_send_error_response(request, 'Dynamic Analysis Failed.', api)
-    
-    finally:
-        # Stop the emulator if it was started by this function
-        if emulator_started:
-            running_emulators = list_running_emulators()
-            for emulator in running_emulators:
-                if get_avd_name(emulator) == selected_avd:
-                    logger.info(f"Stopping emulator: {emulator} for AVD: {selected_avd}")
-                    stop_emulator(emulator)
 
 
 @login_required
