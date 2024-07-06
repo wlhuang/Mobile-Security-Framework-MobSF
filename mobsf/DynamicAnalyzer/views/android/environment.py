@@ -41,7 +41,8 @@ ANDROID_API_SUPPORTED = 34
 
 class Environment:
 
-    def __init__(self, identifier=None):
+    def __init__(self, avd_name, identifier=None):
+        self.avd_name = avd_name
         if identifier:
             self.identifier = identifier
         else:

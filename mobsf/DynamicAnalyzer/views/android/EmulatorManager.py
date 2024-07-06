@@ -7,6 +7,7 @@ from .dynamic_analyzer import dynamic_analyzer
 import json
 import os
 from pathlib import Path
+from environment import Environment
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,8 @@ class EmulatorManager:
                 self.results[task_id] = json.load(f)
 
     def get_or_create_emulator(self, avd_name):
+        environment_instance = Environment(avd_name=avd_name)
+        environment_instance.connect()
         with self.lock:
             if avd_name not in self.emulators:
                 self.emulators[avd_name] = {
@@ -50,12 +53,17 @@ class EmulatorManager:
         return task_id
 
     def start_emulator_thread(self, avd_name):
+        environment_instance = Environment(avd_name=avd_name)
+        environment_instance.connect()
         emulator = self.emulators[avd_name]
         emulator['running'] = True
         emulator['thread'] = threading.Thread(target=self.process_emulator_queue, args=(avd_name,))
         emulator['thread'].start()
+    
 
     def process_emulator_queue(self, avd_name):
+        environment_instance = Environment(avd_name=avd_name)
+        environment_instance.connect()
         emulator = self.emulators[avd_name]
         while not emulator['queue'].empty():
             task_id, scan_params = emulator['queue'].get()
@@ -76,6 +84,8 @@ class EmulatorManager:
             
     
     def run_scan(self, avd_name, scan_params):
+        environment_instance = Environment(avd_name=avd_name)
+        environment_instance.connect()
         try:
             emulator_instance = emulator_name_to_instance(avd_name)
             if emulator_instance not in list_running_emulators():
