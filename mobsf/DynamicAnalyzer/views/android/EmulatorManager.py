@@ -7,23 +7,17 @@ from .dynamic_analyzer import dynamic_analyzer
 import json
 import os
 from pathlib import Path
-from environment import Environment
-
 
 logger = logging.getLogger(__name__)
 
 class EmulatorManager:
-    def __init__(self, avd_name):
+    def __init__(self):
         self.emulators = {}
         self.lock = threading.Lock()
         self.results = {}
         self.results_dir = Path("dynamic_analysis_results")
         self.results_dir.mkdir(exist_ok=True)
         self.load_persistent_results()
-        self.avd_name = avd_name
-        self.environment = Environment(identifier=None, emulator_name=self.avd_name)
-
-
 
     def load_persistent_results(self):
         for file in self.results_dir.glob("*.json"):
