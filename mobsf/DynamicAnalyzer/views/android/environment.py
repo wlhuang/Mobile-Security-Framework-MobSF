@@ -86,24 +86,25 @@ class Environment:
 
     def connect_n_mount(self):
         """Test ADB Connection."""
+        avd_name = get_avd_name()
         if not self.identifier:
             return False
         self.adb_command(['kill-server'])
         self.adb_command(['start-server'], False, True)
         logger.info('ADB Restarted')
         self.wait(2)
-        logger.info('Connecting to Android %s', self.identifier)
+        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
         if not self.run_subprocess_verify_output([get_adb(),
                                                  'connect',
                                                   self.identifier]):
             return False
-        logger.info('Restarting ADB Daemon as root')
+        logger.info('[%s] Restarting ADB Daemon as root', avd_name)
         if not self.run_subprocess_verify_output([get_adb(),
                                                   '-s',
                                                   self.identifier,
                                                   'root']):
             return False
-        logger.info('Reconnecting to Android Device')
+        logger.info('[%s] Reconnecting to Android Device', avd_name)
         # connect again with root adb
         if not self.run_subprocess_verify_output([get_adb(),
                                                   'connect',
@@ -111,10 +112,10 @@ class Environment:
             return False
         # identify environment
         runtime = self.get_environment()
-        logger.info('Remounting')
+        logger.info('[%s] Remounting', avd_name)
         # Allow non supported environments also
         self.adb_command(['remount'])
-        logger.info('Performing System check')
+        logger.info('[%s] Performing System check', avd_name)
         if not self.system_check(runtime):
             return False
         return True
@@ -135,8 +136,9 @@ class Environment:
 
     def install_apk(self, apk_path, package, reinstall):
         """Install APK and Verify Installation."""
+        avd_name = get_avd_name()
         if self.is_package_installed(package, '') and reinstall != '0':
-            logger.info('Removing existing installation')
+            logger.info('[%s] Removing existing installation', avd_name)
             # Remove existing installation'
             self.adb_command(['uninstall', package], False, True)
         # Disable install verification
@@ -147,7 +149,7 @@ class Environment:
             'verifier_verify_adb_installs',
             '0',
         ], True)
-        logger.info('Installing APK - %s', package)
+        logger.info('[%s] Installing APK - %s', avd_name, package)
         # Install APK
         out = self.adb_command([
             'install',
@@ -157,22 +159,22 @@ class Environment:
             '-g',
             apk_path], False, True)
         if not out:
-            logger.error('adb install failed')
+            logger.error('[%s] adb install failed', avd_name)
             return False, 'adb install failed'
         
         # Change battery optimization settings to "Unrestricted"
-        logger.info('Changing battery optimization settings to "Unrestricted" for %s', package)
+        logger.info('[%s] Changing battery optimization settings to "Unrestricted" for %s', avd_name, package)
         self.adb_command(['shell', 'cmd', 'deviceidle', 'whitelist', '+{}'.format(package)])
 
         # Check if the installed APK has BIND_ACCESSIBILITY_SERVICE permission
         accessibility_permission = self.check_accessibility_permission(package)
         if accessibility_permission:
-            logger.info('Accessibility permission found in installed APK')
+            logger.info('[%s] Accessibility permission found in installed APK', avd_name)
             # Run commands to configure accessibility settings
-            logger.info('Configuring accessibility settings...')
+            logger.info('[%s] Configuring accessibility settings...', avd_name)
             self.execute_accessibility_commands()
         else:
-            logger.info('Accessibility permission not found in installed APK')
+            logger.info('[%s] Accessibility permission not found in installed APK', avd_name)
 
         # Verify Installation
         return self.is_package_installed(package, out.decode('utf-8', 'ignore')), out.decode('utf-8', 'ignore')
