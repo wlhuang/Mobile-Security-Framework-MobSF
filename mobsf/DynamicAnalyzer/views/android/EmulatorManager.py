@@ -10,28 +10,6 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-thread_local = threading.local()
-
-def set_avd_name(name):
-    thread_local.avd_name = name
-
-def get_avd_name():
-    return getattr(thread_local, 'avd_name', 'Unknown')
-
-class EmulatorLogFilter(logging.Filter):
-    """Custom logging filter that adds avd_name to log records."""
-    def filter(self, record):
-        record.avd_name = get_avd_name()
-        return True
-
-# Configure the logging system to include avd_name
-logger = logging.getLogger(__name__)
-logger.addFilter(EmulatorLogFilter())
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(avd_name)s] %(asctime)s - %(levelname)s - %(message)s'
-)
-
 class EmulatorManager:
     def __init__(self):
         self.emulators = {}
@@ -72,18 +50,12 @@ class EmulatorManager:
         return task_id
 
     def start_emulator_thread(self, avd_name):
-        emulator = self.get_or_create_emulator(avd_name)
+        emulator = self.emulators[avd_name]
         emulator['running'] = True
-        emulator_thread = threading.Thread(
-            target=self.process_emulator_queue, 
-            args=(avd_name,),
-            name=avd_name  # This sets the thread's name, which can also be used for logging if preferred
-        )
-        emulator['thread'] = emulator_thread
-        emulator_thread.start()
+        emulator['thread'] = threading.Thread(target=self.process_emulator_queue, args=(avd_name,))
+        emulator['thread'].start()
 
     def process_emulator_queue(self, avd_name):
-        set_avd_name(avd_name)  # Set the avd_name for this thread
         emulator = self.emulators[avd_name]
         while not emulator['queue'].empty():
             task_id, scan_params = emulator['queue'].get()
@@ -96,6 +68,11 @@ class EmulatorManager:
             finally:
                 emulator['queue'].task_done()
         emulator['running'] = False
+        running_emulators = list_running_emulators()
+        for emulator in running_emulators:
+            if  get_avd_name(emulator) == avd_name:
+                logger.info(f"Stopping emulator: {emulator} for AVD: {avd_name}")
+                stop_emulator(emulator)
             
     
     def run_scan(self, avd_name, scan_params):

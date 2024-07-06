@@ -1,6 +1,6 @@
 # -*- coding: utf_8 -*-
 """Dynamic Analyzer Helpers."""
-import logging
+from EmulatorManager import logger, set_avd_name
 import os
 import shutil
 import subprocess
@@ -35,7 +35,6 @@ from mobsf.MobSF.utils import (
 )
 from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 
-logger = logging.getLogger(__name__)
 ANDROID_API_SUPPORTED = 34
 
 
