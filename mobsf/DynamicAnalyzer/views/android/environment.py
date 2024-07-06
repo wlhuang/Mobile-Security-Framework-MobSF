@@ -16,6 +16,8 @@ from OpenSSL import crypto
 
 from frida import __version__ as frida_version
 
+from EmulatorLauncher import *
+
 from mobsf.DynamicAnalyzer.tools.webproxy import (
     create_ca,
     get_ca_file,
@@ -37,7 +39,6 @@ from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 
 logger = logging.getLogger(__name__)
 ANDROID_API_SUPPORTED = 34
-
 
 class Environment:
 
@@ -73,7 +74,7 @@ class Environment:
         """ADB Connect."""
         if not self.identifier:
             return False
-        logger.info('Connecting to Android %s', self.identifier)
+        logger.info('[%s] Connecting to Android %s', get_avd_name(self.identifier), self.identifier)
         self.run_subprocess_verify_output([get_adb(),
                                            'connect',
                                            self.identifier])
