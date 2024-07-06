@@ -79,7 +79,7 @@ class Environment:
         if not self.identifier:
             return False
         avd_name = get_avd_name()
-        logger.info('[%s] Connecting to Android %s', avd_name self.identifier)
+        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
         self.run_subprocess_verify_output([get_adb(),
                                            'connect',
                                            self.identifier])
@@ -90,21 +90,20 @@ class Environment:
             return False
         self.adb_command(['kill-server'])
         self.adb_command(['start-server'], False, True)
-        avd_name = get_avd_name()
-        logger.info('[%s] ADB Restarted', avd_name)
+        logger.info('ADB Restarted')
         self.wait(2)
-        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
+        logger.info('Connecting to Android %s', self.identifier)
         if not self.run_subprocess_verify_output([get_adb(),
                                                  'connect',
                                                   self.identifier]):
             return False
-        logger.info('[%s] Restarting ADB Daemon as root', avd_name)
+        logger.info('Restarting ADB Daemon as root')
         if not self.run_subprocess_verify_output([get_adb(),
                                                   '-s',
                                                   self.identifier,
                                                   'root']):
             return False
-        logger.info('[%s] Reconnecting to Android Device', avd_name)
+        logger.info('Reconnecting to Android Device')
         # connect again with root adb
         if not self.run_subprocess_verify_output([get_adb(),
                                                   'connect',
@@ -112,10 +111,10 @@ class Environment:
             return False
         # identify environment
         runtime = self.get_environment()
-        logger.info('[%s] Remounting', avd_name)
+        logger.info('Remounting')
         # Allow non supported environments also
         self.adb_command(['remount'])
-        logger.info('[%s] Performing System check', avd_name)
+        logger.info('Performing System check')
         if not self.system_check(runtime):
             return False
         return True
