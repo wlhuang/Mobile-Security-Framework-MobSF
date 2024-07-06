@@ -7,6 +7,8 @@ from .dynamic_analyzer import dynamic_analyzer
 import json
 import os
 from pathlib import Path
+from .logging_utils import get_logger, set_avd_name
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,7 @@ class EmulatorManager:
         emulator['thread'].start()
 
     def process_emulator_queue(self, avd_name):
+        set_avd_name(avd_name)
         emulator = self.emulators[avd_name]
         while not emulator['queue'].empty():
             task_id, scan_params = emulator['queue'].get()
