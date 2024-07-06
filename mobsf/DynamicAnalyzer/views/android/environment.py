@@ -249,7 +249,7 @@ class Environment:
         stop_httptools(get_http_tools_url(request))
         start_proxy(proxy_port, project)
 
-    def install_mobsf_ca(self, avd_name, action):
+    def install_mobsf_ca(self, action):
         """Install or Remove MobSF Root CA."""
         mobsf_ca = get_ca_file()
         ca_file = None
