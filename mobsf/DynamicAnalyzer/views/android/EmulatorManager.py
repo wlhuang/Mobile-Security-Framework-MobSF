@@ -94,6 +94,9 @@ class EmulatorManager:
                 with open(file_path, "r") as f:
                     return json.load(f)
         return self.results.get(task_id)
+    
+    def avd_name(avd_name):
+        return avd_name
 
 # Create a global instance of the EmulatorManager
 emulator_manager = EmulatorManager()
