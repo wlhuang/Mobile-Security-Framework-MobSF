@@ -56,7 +56,7 @@ def api_start_analysis(request):
     }
     task_id = emulator_manager.queue_scan(avd_name, scan_params)
 
-    return make_api_response({'message': f'Analysis queued successfully for {avd_name}', 'task_id': task_id}, 202)
+    return make_api_response({'message': f'Analysis queued successfully for {avd_name}', 'hash': task_id}, 202)
 
 @request_method(['GET'])
 def api_get_analysis_result(request):
@@ -67,7 +67,7 @@ def api_get_analysis_result(request):
 
     result = emulator_manager.get_scan_result(task_id)
     if result is None:
-        return make_api_response({'message': 'Analysis still in progress'}, 202)
+        return make_api_response({'message': 'Analysis not found or still in progress'}, 404)
     elif 'error' in result:
         return make_api_response(result, 500)
     else:
