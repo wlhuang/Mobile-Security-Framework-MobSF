@@ -7,9 +7,6 @@ from .dynamic_analyzer import dynamic_analyzer
 import json
 import os
 from pathlib import Path
-from .logging_utils import get_logger, set_avd_name
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -96,9 +93,6 @@ class EmulatorManager:
             if file_path.exists():
                 with open(file_path, "r") as f:
                     return json.load(f)
-        return self.results.get(task_id)
-    
-
 
 # Create a global instance of the EmulatorManager
 emulator_manager = EmulatorManager()

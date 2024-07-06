@@ -16,11 +16,6 @@ from OpenSSL import crypto
 
 from frida import __version__ as frida_version
 
-from mobsf.DynamicAnalyzer.views.android.EmulatorManager import *
-from EmulatorLauncher import *
-from .logging_utils import get_logger, set_avd_name
-
-
 from mobsf.DynamicAnalyzer.tools.webproxy import (
     create_ca,
     get_ca_file,
