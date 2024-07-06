@@ -25,7 +25,7 @@ class EmulatorManager:
 
     def queue_scan(self, avd_name, scan_params):
         emulator = self.get_or_create_emulator(avd_name)
-        task_id = f"{avd_name}_{scan_params['hash']}"
+        task_id = f"{scan_params['hash']}"
         self.results[task_id] = None
         emulator['queue'].put((task_id, scan_params))
         if not emulator['running']:
