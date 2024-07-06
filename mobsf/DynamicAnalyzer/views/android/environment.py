@@ -45,6 +45,8 @@ class Environment:
     def __init__(self, identifier=None):
         if identifier:
             self.identifier = identifier
+            self.avd_name = get_avd_name(identifier)
+
         else:
             self.identifier = get_device()
         self.tools_dir = settings.TOOLS_DIR
@@ -74,8 +76,7 @@ class Environment:
         """ADB Connect."""
         if not self.identifier:
             return False
-        avd_name = get_avd_name(self.identifier)
-        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
+        logger.info('[%s] Connecting to Android %s', self.avd_name, self.identifier)
         self.run_subprocess_verify_output([get_adb(),
                                            'connect',
                                            self.identifier])
@@ -88,8 +89,7 @@ class Environment:
         self.adb_command(['start-server'], False, True)
         logger.info('ADB Restarted')
         self.wait(2)
-        avd_name = get_avd_name(self.identifier)
-        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
+        logger.info('[%s] Connecting to Android %s', self.avd_name, self.identifier)
         if not self.run_subprocess_verify_output([get_adb(),
                                                  'connect',
                                                   self.identifier]):
