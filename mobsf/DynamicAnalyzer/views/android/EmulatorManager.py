@@ -7,7 +7,7 @@ from .dynamic_analyzer import dynamic_analyzer
 import json
 import os
 from pathlib import Path
-from .logging_utils import get_logger, set_avd_name
+from .logging_utils import set_avd_name
 
 
 logger = logging.getLogger(__name__)
