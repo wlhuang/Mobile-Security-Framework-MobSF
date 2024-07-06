@@ -15,10 +15,11 @@ from django.conf import settings
 from OpenSSL import crypto
 
 from frida import __version__ as frida_version
-from .logging_utils import get_logger, set_avd_name
 
 from mobsf.DynamicAnalyzer.views.android.EmulatorManager import *
 from EmulatorLauncher import *
+from .logging_utils import get_logger, set_avd_name
+
 
 from mobsf.DynamicAnalyzer.tools.webproxy import (
     create_ca,
@@ -39,21 +40,17 @@ from mobsf.MobSF.utils import (
 )
 from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 
-logger = get_logger(__name__)
-
+logger = logging.getLogger(__name__)
 ANDROID_API_SUPPORTED = 34
 
 
 class Environment:
 
-    def __init__(self, identifier=None, avd_name=None):
+    def __init__(self, identifier=None):
         if identifier:
             self.identifier = identifier
         else:
             self.identifier = get_device()
-        self.avd_name = avd_name
-        if self.avd_name:
-            set_avd_name(self.avd_name)
         self.tools_dir = settings.TOOLS_DIR
         self.frida_str = f'MobSF-Frida-{frida_version}'.encode('utf-8')
         self.xposed_str = b'MobSF-Xposed'
@@ -267,7 +264,7 @@ class Environment:
             logger.warning('mitmproxy root CA is not generated yet.')
             return
         if action == 'install':
-            logger.info('[%s] Installing MobSF RootCA', self.avd_name)
+            logger.info('Installing MobSF RootCA')
             self.adb_command(['push',mobsf_ca ,ca_file])
             self.adb_command(['chmod', '644', ca_file], True)
         elif action == 'remove':
