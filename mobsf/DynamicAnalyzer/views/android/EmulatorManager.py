@@ -68,7 +68,13 @@ class EmulatorManager:
             finally:
                 emulator['queue'].task_done()
         emulator['running'] = False
-
+        running_emulators = list_running_emulators()
+        for emulator in running_emulators:
+            if  get_avd_name(emulator) == avd_name:
+                logger.info(f"Stopping emulator: {emulator} for AVD: {avd_name}")
+                stop_emulator(emulator)
+            
+    
     def run_scan(self, avd_name, scan_params):
         try:
             emulator_instance = emulator_name_to_instance(avd_name)
