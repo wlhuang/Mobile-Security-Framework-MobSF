@@ -15,7 +15,7 @@ class EmulatorManager:
         self.emulators = {}
         self.lock = threading.Lock()
         self.results = {}
-        self.results_dir = Path("persistent_results")
+        self.results_dir = Path("dynamic_analysis_results")
         self.results_dir.mkdir(exist_ok=True)
         self.load_persistent_results()
 
@@ -42,7 +42,7 @@ class EmulatorManager:
 
     def queue_scan(self, avd_name, scan_params):
         emulator = self.get_or_create_emulator(avd_name)
-        task_id = f"{avd_name}_{scan_params['hash']}_{int(time.time())}"
+        task_id = f"{scan_params['hash']}"
         self.save_result(task_id, None)
         emulator['queue'].put((task_id, scan_params))
         if not emulator['running']:

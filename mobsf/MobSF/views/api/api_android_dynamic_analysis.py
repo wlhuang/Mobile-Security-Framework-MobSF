@@ -61,9 +61,9 @@ def api_start_analysis(request):
 @request_method(['GET'])
 def api_get_analysis_result(request):
     """GET - Get Dynamic Analysis Result."""
-    task_id = request.GET.get('task_id')
+    task_id = request.GET.get('hash')
     if not task_id:
-        return make_api_response({'error': 'Missing task_id parameter'}, 422)
+        return make_api_response({'error': 'Missing hash parameter'}, 422)
 
     result = emulator_manager.get_scan_result(task_id)
     if result is None:
