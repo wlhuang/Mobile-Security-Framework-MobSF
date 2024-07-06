@@ -74,7 +74,8 @@ class Environment:
         """ADB Connect."""
         if not self.identifier:
             return False
-        logger.info('[%s] Connecting to Android %s', get_avd_name(self.identifier), self.identifier)
+        avd_name = get_avd_name(self.identifier)
+        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
         self.run_subprocess_verify_output([get_adb(),
                                            'connect',
                                            self.identifier])
