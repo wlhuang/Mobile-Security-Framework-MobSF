@@ -7,6 +7,8 @@ from .dynamic_analyzer import dynamic_analyzer
 import json
 import os
 from pathlib import Path
+from environment import Environment
+
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,8 @@ class EmulatorManager:
             if emulator_instance not in list_running_emulators():
                 start_emulator(avd_name)
             
-            resp = dynamic_analyzer(scan_params['request'], scan_params['hash'], True, avd_name)
+            env = Environment(identifier=emulator_instance, emulator_name=avd_name)
+            resp = dynamic_analyzer(scan_params['request'], scan_params['hash'], True, env)
             return resp
         except Exception as e:
             logger.error(f"Error in run_scan for {avd_name}: {str(e)}")
