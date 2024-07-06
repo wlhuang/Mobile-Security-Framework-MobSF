@@ -14,6 +14,10 @@ from django.conf import settings
 
 from OpenSSL import crypto
 
+from .logging_utils import *
+
+
+
 from frida import __version__ as frida_version
 
 from mobsf.DynamicAnalyzer.tools.webproxy import (
@@ -259,7 +263,8 @@ class Environment:
             logger.warning('mitmproxy root CA is not generated yet.')
             return
         if action == 'install':
-            logger.info('Installing MobSF RootCA')
+            avd_name = get_avd_name()
+            logger.info('[%s] Installing MobSF RootCA', avd_name)
             self.adb_command(['push',mobsf_ca ,ca_file])
             self.adb_command(['chmod', '644', ca_file], True)
         elif action == 'remove':

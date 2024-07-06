@@ -29,3 +29,6 @@ def get_logger(name):
 
 def set_avd_name(avd_name):
     thread_local.avd_name = avd_name
+
+def get_avd_name():
+    return thread_local.avd_name
