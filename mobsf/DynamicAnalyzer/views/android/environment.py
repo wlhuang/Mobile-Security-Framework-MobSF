@@ -15,7 +15,7 @@ from django.conf import settings
 from OpenSSL import crypto
 
 from frida import __version__ as frida_version
-
+from EmulatorLauncher import get_avd_name
 from mobsf.DynamicAnalyzer.tools.webproxy import (
     create_ca,
     get_ca_file,
@@ -35,32 +35,13 @@ from mobsf.MobSF.utils import (
 )
 from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 
-class EmulatorFormatter(logging.Formatter):
-    def format(self, record):
-        if hasattr(record, 'emulator'):
-            record.msg = f"[{record.emulator}] {record.msg}"
-        return super().format(record)
-
-def setup_emulator_logger():
-    logger = logging.getLogger(__name__)
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        formatter = EmulatorFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-    return logger
-
-logger = setup_emulator_logger()
-
+logger = logging.getLogger(__name__)
 ANDROID_API_SUPPORTED = 34
 
 
 class Environment:
 
-    def __init__(self, identifier=None, emulator_name=None):
-        self.identifier = identifier or get_device()
-        self.emulator_name = emulator_name
+    def __init__(self, identifier=None):
         if identifier:
             self.identifier = identifier
         else:
@@ -68,21 +49,17 @@ class Environment:
         self.tools_dir = settings.TOOLS_DIR
         self.frida_str = f'MobSF-Frida-{frida_version}'.encode('utf-8')
         self.xposed_str = b'MobSF-Xposed'
-    
-    def log(self, level, message):
-        log_func = getattr(logger, level)
-        log_func(message, extra={'emulator': self.emulator_name})
 
     def wait(self, sec):
         """Wait in Seconds."""
         if sec > 0:
-            self.log('Waiting for %s seconds...', str(sec))
+            logger.info('Waiting for %s seconds...', str(sec))
             time.sleep(sec)
 
     def check_connect_error(self, output):
         """Check if connect failed."""
         if b'unable to connect' in output or b'failed to connect' in output:
-            self.log('%s', output.decode('utf-8').replace('\n', ''))
+            logger.error('%s', output.decode('utf-8').replace('\n', ''))
             return False
         return True
 
@@ -96,31 +73,32 @@ class Environment:
         """ADB Connect."""
         if not self.identifier:
             return False
-        self.log('Connecting to Android %s', self.identifier)
+        logger.info('Connecting to Android %s', self.identifier)
         self.run_subprocess_verify_output([get_adb(),
                                            'connect',
                                            self.identifier])
 
     def connect_n_mount(self):
         """Test ADB Connection."""
+        avd_name= get_avd_name(self.identifier)
         if not self.identifier:
             return False
         self.adb_command(['kill-server'])
         self.adb_command(['start-server'], False, True)
-        self.log('ADB Restarted')
+        logger.info('ADB Restarted')
         self.wait(2)
-        self.log('Connecting to Android %s', self.identifier)
+        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
         if not self.run_subprocess_verify_output([get_adb(),
                                                  'connect',
                                                   self.identifier]):
             return False
-        self.log('Restarting ADB Daemon as root')
+        logger.info('Restarting ADB Daemon as root')
         if not self.run_subprocess_verify_output([get_adb(),
                                                   '-s',
                                                   self.identifier,
                                                   'root']):
             return False
-        self.log('Reconnecting to Android Device')
+        logger.info('Reconnecting to Android Device')
         # connect again with root adb
         if not self.run_subprocess_verify_output([get_adb(),
                                                   'connect',
@@ -128,10 +106,10 @@ class Environment:
             return False
         # identify environment
         runtime = self.get_environment()
-        self.log('Remounting')
+        logger.info('Remounting')
         # Allow non supported environments also
         self.adb_command(['remount'])
-        self.log('Performing System check')
+        logger.info('Performing System check')
         if not self.system_check(runtime):
             return False
         return True
@@ -153,7 +131,7 @@ class Environment:
     def install_apk(self, apk_path, package, reinstall):
         """Install APK and Verify Installation."""
         if self.is_package_installed(package, '') and reinstall != '0':
-            self.log('Removing existing installation')
+            logger.info('Removing existing installation')
             # Remove existing installation'
             self.adb_command(['uninstall', package], False, True)
         # Disable install verification
@@ -164,7 +142,7 @@ class Environment:
             'verifier_verify_adb_installs',
             '0',
         ], True)
-        self.log('Installing APK - %s', package)
+        logger.info('Installing APK - %s', package)
         # Install APK
         out = self.adb_command([
             'install',
@@ -174,22 +152,22 @@ class Environment:
             '-g',
             apk_path], False, True)
         if not out:
-            self.log('adb install failed')
+            logger.error('adb install failed')
             return False, 'adb install failed'
         
         # Change battery optimization settings to "Unrestricted"
-        self.log('Changing battery optimization settings to "Unrestricted" for %s', package)
+        logger.info('Changing battery optimization settings to "Unrestricted" for %s', package)
         self.adb_command(['shell', 'cmd', 'deviceidle', 'whitelist', '+{}'.format(package)])
 
         # Check if the installed APK has BIND_ACCESSIBILITY_SERVICE permission
         accessibility_permission = self.check_accessibility_permission(package)
         if accessibility_permission:
-            self.log('Accessibility permission found in installed APK')
+            logger.info('Accessibility permission found in installed APK')
             # Run commands to configure accessibility settings
-            self.log('Configuring accessibility settings...')
+            logger.info('Configuring accessibility settings...')
             self.execute_accessibility_commands()
         else:
-            self.log('Accessibility permission not found in installed APK')
+            logger.info('Accessibility permission not found in installed APK')
 
         # Verify Installation
         return self.is_package_installed(package, out.decode('utf-8', 'ignore')), out.decode('utf-8', 'ignore')
@@ -199,7 +177,7 @@ class Environment:
         try:
             out = self.adb_command(['pm', 'dump', package], True)
             if out is None:
-                self.log('Error executing adb command to check permissions')
+                logger.error('Error executing adb command to check permissions')
                 return False
             return b'BIND_ACCESSIBILITY_SERVICE' in out
         except Exception:
@@ -208,10 +186,10 @@ class Environment:
 
     def execute_accessibility_commands(self):
         """Execute commands to open Accessibility settings and navigate."""
-        self.log('Opening Accessibility settings')
+        logger.info('Opening Accessibility settings')
         self.adb_command(['shell', 'am', 'start', '-a', 'android.settings.ACCESSIBILITY_SETTINGS'])
         time.sleep(2)  # Wait for the settings activity to open
-        self.log('Navigating through Accessibility settings')
+        logger.info('Navigating through Accessibility settings')
         # Simulate key events to navigate through the Accessibility settings
         commands = [
             'KEYCODE_TAB',
@@ -260,7 +238,7 @@ class Environment:
         """HTTPS Proxy."""
         self.install_mobsf_ca('install')
         proxy_port = settings.PROXY_PORT
-        self.log('Starting HTTPS Proxy on %s', proxy_port)
+        logger.info('Starting HTTPS Proxy on %s', proxy_port)
         stop_httptools(get_http_tools_url(request))
         start_proxy(proxy_port, project)
 
@@ -282,11 +260,11 @@ class Environment:
             logger.warning('mitmproxy root CA is not generated yet.')
             return
         if action == 'install':
-            self.log('Installing MobSF RootCA')
+            logger.info('Installing MobSF RootCA')
             self.adb_command(['push',mobsf_ca ,ca_file])
             self.adb_command(['chmod', '644', ca_file], True)
         elif action == 'remove':
-            self.log('Removing MobSF RootCA')
+            logger.info('Removing MobSF RootCA')
             self.adb_command(['rm',
                               ca_file], True)
         # with a high timeout afterwards
@@ -305,7 +283,7 @@ class Environment:
                 logger.warning('Please set Android VM proxy as %s:%s',
                                proxy_ip, proxy_port)
                 return
-            self.log('Setting Global Proxy for Android VM')
+            logger.info('Setting Global Proxy for Android VM')
             self.adb_command(
                 ['settings',
                  'put',
@@ -315,7 +293,7 @@ class Environment:
 
     def unset_global_proxy(self):
         """Unset Global Proxy on device."""
-        self.log('Removing Global Proxy for Android VM')
+        logger.info('Removing Global Proxy for Android VM')
         self.adb_command(
             ['settings',
              'delete',
@@ -344,7 +322,7 @@ class Environment:
         if not version >= 5:
             return
         proxy_port = settings.PROXY_PORT
-        self.log('Enabling ADB Reverse TCP on %s', proxy_port)
+        logger.info('Enabling ADB Reverse TCP on %s', proxy_port)
         tcp = 'tcp:{}'.format(proxy_port)
         try:
             proc = subprocess.Popen([get_adb(),
@@ -359,13 +337,13 @@ class Environment:
                                'configure a reachable IP Address'
                                ' in Android proxy settings.')
             elif stderr:
-                self.log(stderr.decode('utf-8').replace('\n', ''))
+                logger.error(stderr.decode('utf-8').replace('\n', ''))
         except Exception:
             logger.exception('Enabling ADB Reverse TCP')
 
     def start_clipmon(self):
         """Start Clipboard Monitoring."""
-        self.log('Starting Clipboard Monitor')
+        logger.info('Starting Clipboard Monitor')
         args = ['am', 'startservice',
                 'opensecurity.clipdump/.ClipDumper']
         self.adb_command(args, True)
@@ -429,14 +407,14 @@ class Environment:
                                 'ro.genymotion.version'],
                                True, False).decode('utf-8', 'ignore')
         if b'EMULATOR' in out:
-            self.log('Found Android Studio Emulator')
+            logger.info('Found Android Studio Emulator')
             return 'emulator'
         elif (b'genymotion' in out.lower()
                 or any(char.isdigit() for char in ver)):
-            self.log('Found Genymotion x86 Android VM')
+            logger.info('Found Genymotion x86 Android VM')
             return 'genymotion'
         elif b'corellium' in out:
-            self.log('Found Corellium ARM Android VM')
+            logger.info('Found Corellium ARM Android VM')
             return 'corellium'
         else:
             logger.warning(
@@ -517,7 +495,7 @@ class Environment:
                 package], True)
             out = out.decode('utf-8').rstrip()
             path = out.split('package:', 1)[1].strip()
-            self.log('Downloading APK')
+            logger.info('Downloading APK')
             self.adb_command([
                 'pull',
                 path,
@@ -534,10 +512,10 @@ class Environment:
             try:
                 api = self.get_android_sdk()
                 if api:
-                    self.log('Android API Level '
+                    logger.info('Android API Level '
                                 'identified as %s', api)
                     if int(api) > ANDROID_API_SUPPORTED:
-                        self.log('This API Level is not supported'
+                        logger.error('This API Level is not supported'
                                      ' for Dynamic Analysis.')
                         return False
             except Exception:
@@ -554,13 +532,13 @@ class Environment:
                                     stderr=subprocess.PIPE)
             _, stderr = proc.communicate()
             if b'Read-only' in stderr:
-                self.log(err_msg)
+                logger.error(err_msg)
                 if runtime == 'emulator':
-                    self.log('Please start the AVD as per '
+                    logger.error('Please start the AVD as per '
                                  'MobSF documentation!')
                 return False
         except Exception:
-            self.log(err_msg)
+            logger.error(err_msg)
             return False
         return True
 
@@ -573,7 +551,7 @@ class Environment:
         sleep = getattr(settings, 'ACTIVITY_TESTER_SLEEP', 3)
         self.wait(sleep)
         self.screen_shot(outfile)
-        self.log('Activity screenshot captured')
+        logger.info('Activity screenshot captured')
 
     def run_app(self, package):
         """Launch an app with package name."""
@@ -586,7 +564,7 @@ class Environment:
 
     def is_mobsfyied(self, android_version):
         """Check is Device is MobSFyed."""
-        self.log('Environment MobSFyed Check')
+        logger.info('Environment MobSFyed Check')
         if android_version < 5:
             agent_file = '.mobsf-x'
             agent_str = self.xposed_str
@@ -609,7 +587,7 @@ class Environment:
     def mobsfy_init(self):
         """Init MobSFy."""
         version = self.get_android_version()
-        self.log('Android Version identified as %s', version)
+        logger.info('Android Version identified as %s', version)
         try:
             if version < 5:
                 self.xposed_setup(version)
@@ -617,7 +595,7 @@ class Environment:
             else:
                 self.frida_setup()
                 self.mobsf_agents_setup('frida')
-            self.log('MobSFying Completed!')
+            logger.info('MobSFying Completed!')
             return version
         except Exception:
             logger.exception('Failed to MobSFy Android Instance')
@@ -648,10 +626,10 @@ class Environment:
         clip_dump_apk = os.path.join(self.tools_dir,
                                      xposed_dir,
                                      'ClipDump.apk')
-        self.log('Installing MobSF Clipboard Dumper')
+        logger.info('Installing MobSF Clipboard Dumper')
         self.adb_command(['install', '-r', clip_dump_apk])
         if android_version < 5:
-            self.log('Installing Xposed for Kitkat and below')
+            logger.info('Installing Xposed for Kitkat and below')
             xposed_apk = os.path.join(self.tools_dir,
                                       xposed_dir,
                                       'Xposed.apk')
@@ -661,12 +639,12 @@ class Environment:
             droidmon = os.path.join(self.tools_dir,
                                     xposed_modules,
                                     'Droidmon.apk')
-            self.log('Installing Droidmon API Analyzer')
+            logger.info('Installing Droidmon API Analyzer')
             self.adb_command(['install', '-r', droidmon])
-            self.log('Copying Droidmon hooks config')
+            logger.info('Copying Droidmon hooks config')
             self.adb_command(['push', hooks, '/data/local/tmp/'])
         else:
-            self.log('Installing Xposed for Lollipop and above')
+            logger.info('Installing Xposed for Lollipop and above')
             xposed_apk = os.path.join(self.tools_dir,
                                       xposed_dir,
                                       'XposedInstaller_3.1.5.apk')
@@ -687,17 +665,17 @@ class Environment:
         bluepill = os.path.join(self.tools_dir,
                                 xposed_modules,
                                 'AndroidBluePill.apk')
-        self.log('Installing JustTrustMe')
+        logger.info('Installing JustTrustMe')
         self.adb_command(['install', '-r', justrustme])
-        self.log('Installing SSLUnpinning')
+        logger.info('Installing SSLUnpinning')
         self.adb_command(['install', '-r', sslunpin])
-        self.log('Installing ProxyOn')
+        logger.info('Installing ProxyOn')
         self.adb_command(['install', '-r', proxyon])
-        self.log('Installing RootCloak')
+        logger.info('Installing RootCloak')
         self.adb_command(['install', '-r', rootcloak])
-        self.log('Installing Android BluePill')
+        logger.info('Installing Android BluePill')
         self.adb_command(['install', '-r', bluepill])
-        self.log('Launching Xposed Framework.')
+        logger.info('Launching Xposed Framework.')
         xposed_installer = ('de.robv.android.xposed.installer/'
                             'de.robv.android.xposed.installer.'
                             'WelcomeActivity')
@@ -708,7 +686,7 @@ class Environment:
         """Setup Frida."""
         frida_arch = None
         arch = self.get_android_arch()
-        self.log('Android OS architecture identified as %s', arch)
+        logger.info('Android OS architecture identified as %s', arch)
         if arch in ['armeabi-v7a', 'armeabi']:
             frida_arch = 'arm'
         elif arch == 'arm64-v8a':
@@ -718,7 +696,7 @@ class Environment:
         elif arch == 'x86_64':
             frida_arch = 'x86_64'
         else:
-            self.log('Make sure a Genymotion Android x86 VM'
+            logger.error('Make sure a Genymotion Android x86 VM'
                          ' or Android Studio Emulator'
                          ' instance is running')
             return
@@ -728,10 +706,10 @@ class Environment:
             msg = ('Cannot download frida-server binary. You will need'
                    f' {frida_bin} in {settings.DWD_DIR} for '
                    'Dynamic Analysis to work')
-            self.log(msg)
+            logger.error(msg)
             return
         frida_path = os.path.join(settings.DWD_DIR, frida_bin)
-        self.log('Copying frida server for %s', frida_arch)
+        logger.info('Copying frida server for %s', frida_arch)
         self.adb_command(['push', frida_path, '/system/fd_server'])
         self.adb_command(['chmod', '755', '/system/fd_server'], True)
 
@@ -739,7 +717,7 @@ class Environment:
         """Start Frida Server."""
         check = self.adb_command(['ps'], True)
         if b'fd_server' in check:
-            self.log('Frida Server is already running')
+            logger.info('Frida Server is already running')
             return
 
         def start_frida():
@@ -753,6 +731,6 @@ class Environment:
         trd = threading.Thread(target=start_frida)
         trd.daemon = True
         trd.start()
-        self.log('Starting Frida Server')
-        self.log('Waiting for 2 seconds...')
+        logger.info('Starting Frida Server')
+        logger.info('Waiting for 2 seconds...')
         time.sleep(2)
