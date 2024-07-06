@@ -9,7 +9,7 @@ import threading
 import time
 from base64 import b64encode
 from hashlib import md5
-
+from EmulatorLauncher import *
 from django.conf import settings
 
 from OpenSSL import crypto
@@ -82,6 +82,8 @@ class Environment:
         """Test ADB Connection."""
         if not self.identifier:
             return False
+        avd_name = get_avd_name(self.identifier)
+        print("testing12345", avd_name)
         self.adb_command(['kill-server'])
         self.adb_command(['start-server'], False, True)
         logger.info('ADB Restarted')
