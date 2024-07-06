@@ -136,9 +136,8 @@ class Environment:
 
     def install_apk(self, apk_path, package, reinstall):
         """Install APK and Verify Installation."""
-        avd_name = get_avd_name()
         if self.is_package_installed(package, '') and reinstall != '0':
-            logger.info('[%s] Removing existing installation', avd_name)
+            logger.info('Removing existing installation')
             # Remove existing installation'
             self.adb_command(['uninstall', package], False, True)
         # Disable install verification
@@ -149,7 +148,7 @@ class Environment:
             'verifier_verify_adb_installs',
             '0',
         ], True)
-        logger.info('[%s] Installing APK - %s', avd_name, package)
+        logger.info('Installing APK - %s', package)
         # Install APK
         out = self.adb_command([
             'install',
@@ -159,22 +158,22 @@ class Environment:
             '-g',
             apk_path], False, True)
         if not out:
-            logger.error('[%s] adb install failed', avd_name)
+            logger.error('adb install failed')
             return False, 'adb install failed'
         
         # Change battery optimization settings to "Unrestricted"
-        logger.info('[%s] Changing battery optimization settings to "Unrestricted" for %s', avd_name, package)
+        logger.info('Changing battery optimization settings to "Unrestricted" for %s', package)
         self.adb_command(['shell', 'cmd', 'deviceidle', 'whitelist', '+{}'.format(package)])
 
         # Check if the installed APK has BIND_ACCESSIBILITY_SERVICE permission
         accessibility_permission = self.check_accessibility_permission(package)
         if accessibility_permission:
-            logger.info('[%s] Accessibility permission found in installed APK', avd_name)
+            logger.info('Accessibility permission found in installed APK')
             # Run commands to configure accessibility settings
-            logger.info('[%s] Configuring accessibility settings...', avd_name)
+            logger.info('Configuring accessibility settings...')
             self.execute_accessibility_commands()
         else:
-            logger.info('[%s] Accessibility permission not found in installed APK', avd_name)
+            logger.info('Accessibility permission not found in installed APK')
 
         # Verify Installation
         return self.is_package_installed(package, out.decode('utf-8', 'ignore')), out.decode('utf-8', 'ignore')
