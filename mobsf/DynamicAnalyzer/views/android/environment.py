@@ -42,7 +42,6 @@ from mobsf.StaticAnalyzer.models import StaticAnalyzerAndroid
 logger = logging.getLogger(__name__)
 ANDROID_API_SUPPORTED = 34
 
-avd_name = get_avd_name()
 
 class Environment:
 
@@ -264,6 +263,7 @@ class Environment:
             logger.warning('mitmproxy root CA is not generated yet.')
             return
         if action == 'install':
+            avd_name = get_avd_name()
             logger.info('[%s] Installing MobSF RootCA', avd_name)
             self.adb_command(['push',mobsf_ca ,ca_file])
             self.adb_command(['chmod', '644', ca_file], True)
