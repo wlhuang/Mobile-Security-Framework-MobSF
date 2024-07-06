@@ -67,7 +67,7 @@ def api_get_analysis_result(request):
 
     result = emulator_manager.get_scan_result(task_id)
     if result is None:
-        return make_api_response({'message': 'Analysis not found or still in progress'}, 404)
+        return make_api_response({'message': 'Analysis still in progress'}, 202)
     elif 'error' in result:
         return make_api_response(result, 500)
     else:
