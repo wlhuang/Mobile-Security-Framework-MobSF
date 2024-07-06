@@ -10,6 +10,7 @@ from pathlib import Path
 from .logging_utils import get_logger, set_avd_name
 
 
+
 logger = logging.getLogger(__name__)
 
 class EmulatorManager:
@@ -43,7 +44,6 @@ class EmulatorManager:
             json.dump(result, f)
 
     def queue_scan(self, avd_name, scan_params):
-        set_avd_name(avd_name)
         emulator = self.get_or_create_emulator(avd_name)
         task_id = f"{scan_params['hash']}"
         self.save_result(task_id, None)
@@ -53,14 +53,12 @@ class EmulatorManager:
         return task_id
 
     def start_emulator_thread(self, avd_name):
-        set_avd_name(avd_name)
         emulator = self.emulators[avd_name]
         emulator['running'] = True
         emulator['thread'] = threading.Thread(target=self.process_emulator_queue, args=(avd_name,))
         emulator['thread'].start()
 
     def process_emulator_queue(self, avd_name):
-        set_avd_name(avd_name)
         emulator = self.emulators[avd_name]
         while not emulator['queue'].empty():
             task_id, scan_params = emulator['queue'].get()
@@ -81,7 +79,6 @@ class EmulatorManager:
             
     
     def run_scan(self, avd_name, scan_params):
-        set_avd_name(avd_name)
         try:
             emulator_instance = emulator_name_to_instance(avd_name)
             if emulator_instance not in list_running_emulators():
