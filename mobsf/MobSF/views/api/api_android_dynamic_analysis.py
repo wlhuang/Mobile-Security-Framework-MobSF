@@ -38,9 +38,9 @@ def api_start_analysis(request):
     """POST - Start Dynamic Analysis."""
     avds = list_avds()
     if 'hash' not in request.POST:
-        return make_api_response({'error': 'Missing hash parameter'}, 422)
+        return make_api_response({'error': 'Missing Parameters'}, 422)
     
-    file_hash = request.POST['hash']
+    hash_value = request.POST['hash']
     avd_name = request.POST.get('avd_name')
     
     if not avd_name:
@@ -52,22 +52,22 @@ def api_start_analysis(request):
     # Queue the scan for the specified emulator
     scan_params = {
         'request': request,
-        'hash': file_hash
+        'hash': hash_value
     }
     task_id = emulator_manager.queue_scan(avd_name, scan_params)
 
-    return make_api_response({'message': f'Analysis queued successfully for {avd_name}', 'hash': task_id}, 202)
+    return make_api_response({'message': f'Analysis queued successfully for {avd_name}', 'task_id': task_id}, 202)
 
 @request_method(['GET'])
 def api_get_analysis_result(request):
     """GET - Get Dynamic Analysis Result."""
-    task_id = request.GET.get('hash')
+    task_id = request.GET.get('task_id')
     if not task_id:
-        return make_api_response({'error': 'Missing hash parameter'}, 422)
+        return make_api_response({'error': 'Missing task_id parameter'}, 422)
 
     result = emulator_manager.get_scan_result(task_id)
     if result is None:
-        return make_api_response({'message': 'Analysis result not found'}, 404)
+        return make_api_response({'message': 'Analysis not found or still in progress'}, 404)
     elif 'error' in result:
         return make_api_response(result, 500)
     else:

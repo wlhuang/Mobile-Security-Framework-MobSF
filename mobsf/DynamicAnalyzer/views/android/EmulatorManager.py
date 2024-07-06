@@ -1,20 +1,22 @@
 import threading
-import json
 from queue import Queue
 import logging
+import json
 from pathlib import Path
-
 from EmulatorLauncher import *
 from .dynamic_analyzer import dynamic_analyzer
 
 logger = logging.getLogger(__name__)
 
+
 class EmulatorManager:
     def __init__(self):
         self.emulators = {}
         self.lock = threading.Lock()
-        self.results_dir = Path('dynamic_analysis_results')
+        self.results = {}
+        self.results_dir = Path("dynamic_analysis_results")
         self.results_dir.mkdir(exist_ok=True)
+        self.load_persistent_results()
 
     def get_or_create_emulator(self, avd_name):
         with self.lock:
@@ -25,10 +27,17 @@ class EmulatorManager:
                     'thread': None
                 }
             return self.emulators[avd_name]
+        
+    def load_persistent_results(self):
+        for file in self.results_dir.glob("*.json"):
+            with open(file, "r") as f:
+                task_id = file.stem
+                self.results[task_id] = json.load(f)
 
     def queue_scan(self, avd_name, scan_params):
         emulator = self.get_or_create_emulator(avd_name)
-        task_id = scan_params['hash']  # Use the app's hash as the task_id
+        task_id = f"{scan_params['hash']}"
+        self.save_result(task_id, None)
         emulator['queue'].put((task_id, scan_params))
         if not emulator['running']:
             self.start_emulator_thread(avd_name)
@@ -66,17 +75,13 @@ class EmulatorManager:
             logger.error(f"Error in run_scan for {avd_name}: {str(e)}")
             return {'error': str(e)}
 
-    def save_result(self, task_id, result):
-        result_file = self.results_dir / f"{task_id}.json"
-        with result_file.open('w') as f:
-            json.dump(result, f)
-
     def get_scan_result(self, task_id):
-        result_file = self.results_dir / f"{task_id}.json"
-        if result_file.exists():
-            with result_file.open('r') as f:
-                return json.load(f)
-        return None
+        if task_id not in self.results:
+            file_path = self.results_dir / f"{task_id}.json"
+            if file_path.exists():
+                with open(file_path, "r") as f:
+                    return json.load(f)
+        return self.results.get(task_id)
 
 # Create a global instance of the EmulatorManager
 emulator_manager = EmulatorManager()

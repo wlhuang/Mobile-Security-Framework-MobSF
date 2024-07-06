@@ -53,7 +53,6 @@ from mobsf.MobSF.views.authorization import (
 )
 from EmulatorLauncher import *
 from mobsf.DynamicAnalyzer.views.android.queue import *
-from EmulatorManager import *
 
 logger = logging.getLogger(__name__)
 
@@ -687,9 +686,6 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                    'scripts': file_list_without_extension,
                    'device_used': selected_avd}
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
-        
-        emulator_manager.save_result(checksum, context)
-
         if api:
             return context
         return render(request, template, context)
