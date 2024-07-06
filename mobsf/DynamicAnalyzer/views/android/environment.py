@@ -15,7 +15,7 @@ from django.conf import settings
 from OpenSSL import crypto
 
 from frida import __version__ as frida_version
-from EmulatorLauncher import get_avd_name
+
 from mobsf.DynamicAnalyzer.tools.webproxy import (
     create_ca,
     get_ca_file,
@@ -80,14 +80,13 @@ class Environment:
 
     def connect_n_mount(self):
         """Test ADB Connection."""
-        avd_name= get_avd_name(self.identifier)
         if not self.identifier:
             return False
         self.adb_command(['kill-server'])
         self.adb_command(['start-server'], False, True)
         logger.info('ADB Restarted')
         self.wait(2)
-        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
+        logger.info('Connecting to Android %s', self.identifier)
         if not self.run_subprocess_verify_output([get_adb(),
                                                  'connect',
                                                   self.identifier]):
