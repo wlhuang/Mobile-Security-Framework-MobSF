@@ -46,6 +46,8 @@ class Environment:
             self.identifier = identifier
         else:
             self.identifier = get_device()
+        
+        self.avd_name = get_avd_name(identifier)
         self.tools_dir = settings.TOOLS_DIR
         self.frida_str = f'MobSF-Frida-{frida_version}'.encode('utf-8')
         self.xposed_str = b'MobSF-Xposed'
@@ -82,8 +84,6 @@ class Environment:
         """Test ADB Connection."""
         if not self.identifier:
             return False
-        avd_name = get_avd_name(self.identifier)
-        print("testing12345", avd_name)
         self.adb_command(['kill-server'])
         self.adb_command(['start-server'], False, True)
         logger.info('ADB Restarted')
@@ -261,7 +261,7 @@ class Environment:
             logger.warning('mitmproxy root CA is not generated yet.')
             return
         if action == 'install':
-            logger.info('Installing MobSF RootCA')
+            logger.info('[%s] Installing MobSF RootCA', self.avd_name)
             self.adb_command(['push',mobsf_ca ,ca_file])
             self.adb_command(['chmod', '644', ca_file], True)
         elif action == 'remove':
