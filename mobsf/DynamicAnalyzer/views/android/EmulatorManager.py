@@ -96,6 +96,7 @@ class EmulatorManager:
             if file_path.exists():
                 with open(file_path, "r") as f:
                     return json.load(f)
+        return self.results.get(task_id)
 
 # Create a global instance of the EmulatorManager
 emulator_manager = EmulatorManager()
