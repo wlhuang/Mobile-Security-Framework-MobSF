@@ -213,11 +213,10 @@ class Environment:
 
     def adb_command(self, cmd_list, shell=False, silent=False):
         """ADB Command wrapper."""
-        avd_name = get_avd_name()
-        new_identifier = emulator_name_to_instance(avd_name)
+        instance = get_avd_instance()
         args = [get_adb(),
                 '-s',
-                new_identifier]
+                instance]
         if shell:
             args += ['shell']
         args += cmd_list

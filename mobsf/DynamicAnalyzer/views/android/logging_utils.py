@@ -1,5 +1,6 @@
 import threading
 import logging
+from EmulatorLauncher import *
 
 # Thread-local storage for AVD names
 thread_local = threading.local()
@@ -14,3 +15,7 @@ def set_avd_name(avd_name):
 
 def get_avd_name():
     return thread_local.avd_name
+
+def get_avd_instance():
+    instance = emulator_name_to_instance(thread_local.avd_name)
+    return instance
