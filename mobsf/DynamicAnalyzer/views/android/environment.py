@@ -15,8 +15,6 @@ from django.conf import settings
 from OpenSSL import crypto
 
 from .logging_utils import *
-from EmulatorLauncher import *
-
 
 from frida import __version__ as frida_version
 
@@ -213,10 +211,11 @@ class Environment:
 
     def adb_command(self, cmd_list, shell=False, silent=False):
         """ADB Command wrapper."""
-        instance = get_avd_instance()
+        avd_name = get_avd_name()
+        print(get_avd_instance)
         args = [get_adb(),
                 '-s',
-                instance]
+                self.identifier]
         if shell:
             args += ['shell']
         args += cmd_list
