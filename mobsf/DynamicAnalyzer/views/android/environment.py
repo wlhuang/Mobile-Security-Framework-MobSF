@@ -212,7 +212,8 @@ class Environment:
     def adb_command(self, cmd_list, shell=False, silent=False):
         """ADB Command wrapper."""
         avd_name = get_avd_name()
-        print(get_avd_instance)
+        instance = get_avd_instance()
+        print(instance)
         args = [get_adb(),
                 '-s',
                 self.identifier]
