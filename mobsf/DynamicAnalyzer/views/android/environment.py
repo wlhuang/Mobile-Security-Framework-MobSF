@@ -216,7 +216,7 @@ class Environment:
         print(instance)
         args = [get_adb(),
                 '-s',
-                self.identifier]
+                instance]
         if shell:
             args += ['shell']
         args += cmd_list
