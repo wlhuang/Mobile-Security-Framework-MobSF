@@ -647,7 +647,6 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                    ' all Xposed modules. And finally'
                    ' restart the device once again.')
             return print_n_send_error_response(request, msg, api)
-        print("9")
         # Clean up previous analysis
         env.dz_cleanup(checksum)
         # Configure Web Proxy
