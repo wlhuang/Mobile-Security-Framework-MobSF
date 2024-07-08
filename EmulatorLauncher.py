@@ -105,4 +105,9 @@ def start_emulator(avd_name):
         print(f"Error starting emulator {avd_name}: {str(e)}")  # Debug print
         raise
 
-
+def name_instance(emulator):
+    running_emulators = list_running_emulators()
+    for i in running_emulators:
+        avd_name = get_avd_name(i)
+        if avd_name == emulator:
+            return i
