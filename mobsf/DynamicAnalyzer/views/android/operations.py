@@ -297,7 +297,6 @@ def mobsf_ca(request, api=False):
     """Install and Remove MobSF Proxy RootCA."""
     data = {}
     try:
-        
         emulator = request.POST['deviceidentifier']
         action = request.POST['action']
 
@@ -305,7 +304,7 @@ def mobsf_ca(request, api=False):
         for i in list_running_emulators():
             emulator_list.append(get_avd_name(i))
         if emulator in emulator_list:
-            env = Environment(identifier=emulator)
+            env = Environment(identifier=emulator_name_to_instance(emulator))
         else:
             data = {'status': 'failed',
                     'message': 'Please use a live emulator',

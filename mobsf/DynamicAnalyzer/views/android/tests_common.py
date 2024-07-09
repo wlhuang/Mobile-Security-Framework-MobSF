@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 def start_activity(request, api=False):
     """Lunch a specific activity."""
     try:
-        env = Environment()
+
         activity = request.POST['activity']
         md5_hash = request.POST['hash']
         emulator = request.POST['deviceidentifier']
