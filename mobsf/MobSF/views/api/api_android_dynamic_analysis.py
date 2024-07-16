@@ -31,6 +31,19 @@ def api_get_apps(request):
         return make_api_response(resp, 500)
     return make_api_response(resp, 200)
 
+@request_method(['GET'])
+@csrf_exempt
+def api_queue(request):
+    """GET - Get current queue status for all emulators."""
+    queue_status = emulator_manager.get_queue_status()
+    return make_api_response(queue_status, 200)
+
+@request_method(['GET'])
+@csrf_exempt
+def api_machines(request):
+    """GET - Get current queue status for all emulators."""
+    machines = emulator_manager.get_machines()
+    return make_api_response(machines, 200)
 
 @request_method(['POST'])
 @csrf_exempt
