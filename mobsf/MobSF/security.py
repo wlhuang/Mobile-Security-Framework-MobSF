@@ -86,6 +86,7 @@ def get_executable_hashes():
         'BinSkim.exe',
         'BinScope.exe',
         'nuget.exe',
+        'emulator',
     ]
     for sbin in system_bins:
         bin_path = which(sbin)
