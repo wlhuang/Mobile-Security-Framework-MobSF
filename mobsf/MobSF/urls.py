@@ -121,7 +121,7 @@ urlpatterns = [
     re_path(r'^api/v1/android/start_activity$', api_dz.api_start_activity),
     re_path(r'^api/v1/android/tls_tests$', api_dz.api_tls_tester),
     # Frida
-    #re_path(r'^api/v1/frida/recommend$', api_dz.api_recommend),     #L's changes
+    re_path(r'^api/v1/frida/recommend$', api_dz.api_recommendations),     #L's changes
     re_path(r'^api/v1/frida/instrument$', api_dz.api_instrument),
     re_path(r'^api/v1/frida/api_monitor$', api_dz.api_api_monitor),
     re_path(r'^api/v1/frida/get_dependencies$', api_dz.api_get_dependencies),

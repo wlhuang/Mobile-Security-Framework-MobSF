@@ -11,6 +11,7 @@ from mobsf.DynamicAnalyzer.views.android import (
     report,
     tests_common,
     tests_frida,
+    frida_recommend,
 )
 from mobsf.DynamicAnalyzer.views.common import (
     device,
@@ -225,6 +226,19 @@ def api_stop_analysis(request):
 
 
 # Android Frida APIs
+
+@request_method(['POST'])
+@csrf_exempt
+def api_frida_recommendations(request):
+   """POST - Frida Recommendation"""
+   if 'hash' not in request.POST:
+       return make_api_response(
+           {'error': 'Missing Parameters'}, 422)
+   resp = frida_recommend.frida_recommendations(request, True)
+   if resp['status'] == 'ok':
+       return make_api_response(resp, 200)
+   return make_api_response(resp, 500)
+
 @request_method(['POST'])
 @csrf_exempt
 def api_instrument(request):
