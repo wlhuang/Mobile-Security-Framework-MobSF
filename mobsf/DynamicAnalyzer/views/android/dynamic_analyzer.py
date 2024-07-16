@@ -493,7 +493,6 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             selected_avd = avd_name
         else:
             selected_avd = avds[0]
-            print(avds[0])
             emulator_started = True
             
         if not selected_avd:
@@ -538,9 +537,7 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             permissionlist = []
             for i in permissions:
                 permissionlist.append(i)
-            print(permissionlist)
             selectedscript = select_frida_script_permissions(permissions)
-            print(selectedscript)
             if len(selectedscript) == 0:
                 selectedscript = selectedscript
             else:
@@ -562,7 +559,6 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                 selectedscript = selectedscript
             else:
                 selectedscript = selectedscript + selectedscript
-            print(selectedscript)
         except ObjectDoesNotExist:
             logger.warning(
                 'Failed to get Android API. '
@@ -618,7 +614,6 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             pass
         
         env = Environment(identifier)
-        print(identifier)
         if not env.connect_n_mount():
             msg = 'Cannot Connect to ' + identifier
             return print_n_send_error_response(request, msg, api)
@@ -672,7 +667,6 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                     msg,
                     api)
         logger.info('Testing Environment is Ready!')
-        print(file_list_without_extension)
         context = {'package': package,
                    'hash': checksum,
                    'api_key': apiKey,

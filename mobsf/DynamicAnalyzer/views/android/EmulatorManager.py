@@ -1,14 +1,12 @@
 import threading
 from queue import Queue
 import logging
-
-from EmulatorLauncher import *
-from .dynamic_analyzer import dynamic_analyzer
 import json
-import os
 from pathlib import Path
-from .logging_utils import set_avd_name
 
+from .dynamic_analyzer import dynamic_analyzer
+from .logging_utils import set_avd_name
+from EmulatorLauncher import *
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +18,37 @@ class EmulatorManager:
         self.results_dir = Path("dynamic_analysis_results")
         self.results_dir.mkdir(exist_ok=True)
         self.load_persistent_results()
+    
+    def get_machines(self):
+        status = {}
+        available_avds = list_avds()
+        
+        with self.lock:
+            for avd_name in available_avds:
+                if avd_name in self.emulators:
+                    status[avd_name] = {
+                        "Running": self.emulators[avd_name]['running']
+                    }
+                else:
+                    status[avd_name] = {
+                        "Running": False
+                    }
+        
+        return {"available_avds": status}
+
+    def get_queue_status(self):
+        status = {}
+        with self.lock:
+            for avd_name, emulator in self.emulators.items():
+                queue_items = list(emulator['queue'].queue)
+                running_task = emulator.get('current_task', None)
+                status[avd_name] = {
+                    'queue_size': emulator['queue'].qsize() + (1 if running_task else 0),
+                    'running': emulator['running'],
+                    'current_task': running_task,
+                    'queued_tasks': [item[0] for item in queue_items]
+                }
+        return status
 
     def load_persistent_results(self):
         for file in self.results_dir.glob("*.json"):
@@ -33,10 +62,11 @@ class EmulatorManager:
                 self.emulators[avd_name] = {
                     'queue': Queue(),
                     'running': False,
-                    'thread': None
+                    'thread': None,
+                    'current_task': None
                 }
             return self.emulators[avd_name]
-        
+
     def save_result(self, task_id, result):
         self.results[task_id] = result
         with open(self.results_dir / f"{task_id}.json", "w") as f:
@@ -62,6 +92,7 @@ class EmulatorManager:
         emulator = self.emulators[avd_name]
         while not emulator['queue'].empty():
             task_id, scan_params = emulator['queue'].get()
+            emulator['current_task'] = task_id  # Set current task
             try:
                 result = self.run_scan(avd_name, scan_params)
                 self.save_result(task_id, result)
@@ -70,20 +101,19 @@ class EmulatorManager:
                 self.save_result(task_id, {'error': str(e)})
             finally:
                 emulator['queue'].task_done()
+                emulator['current_task'] = None  # Clear current task
         emulator['running'] = False
         running_emulators = list_running_emulators()
         for emulator in running_emulators:
             if  get_avd_name(emulator) == avd_name:
                 logger.info(f"Stopping emulator: {emulator} for AVD: {avd_name}")
                 stop_emulator(emulator)
-            
-    
+
     def run_scan(self, avd_name, scan_params):
         try:
             emulator_instance = emulator_name_to_instance(avd_name)
             if emulator_instance not in list_running_emulators():
                 start_emulator(avd_name)
-            
             resp = dynamic_analyzer(scan_params['request'], scan_params['hash'], True, avd_name)
             return resp
         except Exception as e:

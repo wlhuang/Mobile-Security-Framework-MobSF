@@ -1,6 +1,7 @@
 import subprocess
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 def list_avds():
     result = subprocess.run(['emulator', '-list-avds'], stdout=subprocess.PIPE)
@@ -41,7 +42,7 @@ def emulator_name_to_instance(emulator):
         return emulator
 
 def stop_emulator(emulator_id):
-    subprocess.run(['adb', '-s', emulator_id, 'emu', 'kill'])
+    subprocess.run(['adb', '-s', emulator_id, 'emu', 'kill'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def snapshot_retrieve(avd_name):
@@ -78,33 +79,42 @@ def snapshot_retrieve(avd_name):
         print(f"Error in snapshot_retrieve: {str(e)}")  # Debug print
         return None
 
+def check_emulator_started(avd_name, attempts=30, delay=2):
+    """Check if the emulator has started within the given number of attempts."""
+    for i in range(attempts):
+        time.sleep(delay)
+        if emulator_name_to_instance(avd_name) in list_running_emulators():
+            print(f"Emulator {avd_name} started successfully")
+            return True
+        print(f"Waiting for emulator to start, attempt {i + 1}")
+    return False
+
 def start_emulator(avd_name):
     try:
         snapshot = snapshot_retrieve(avd_name)
         if snapshot:
             emulator_command = ["emulator", "-avd", avd_name, "-writable-system", "-snapshot", snapshot]
         else:
-            print(f"No snapshot found for {avd_name}, starting without snapshot")  # Debug print
+            print(f"No snapshot found for {avd_name}, starting without snapshot")
             emulator_command = ["emulator", "-avd", avd_name, "-writable-system", "-no-snapshot"]
-        
-        print(f"Emulator command: {' '.join(emulator_command)}")  # Debug print
-        process = subprocess.Popen(emulator_command)
-        
-        # Wait for the emulator to start
-        for i in range(30):  # 30 attempts, 2 seconds each
-            if emulator_name_to_instance(avd_name) in list_running_emulators():
-                print(f"Emulator {avd_name} started successfully")  # Debug print
-                return
-            time.sleep(2)
-            print(f"Waiting for emulator to start, attempt {i+1}")  # Debug print
-        
-        # If we've reached here, the emulator didn't start
-        process.kill()
-        raise Exception(f"Failed to start emulator for AVD: {avd_name}")
-    except Exception as e:
-        print(f"Error starting emulator {avd_name}: {str(e)}")  # Debug print
-        raise
 
+        print(f"Starting emulator with command: {' '.join(emulator_command)}")
+        subprocess.Popen(emulator_command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        # Using ThreadPoolExecutor to manage the check for the emulator start
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            future = executor.submit(check_emulator_started, avd_name)
+            if future.result():
+                print(f"Emulator {avd_name} started successfully")
+                return True
+            else:
+                print(f"Failed to start emulator for AVD: {avd_name}")
+                return False
+
+    except Exception as e:
+        print(f"Error starting emulator {avd_name}: {str(e)}")
+        return False
+    
 def name_instance(emulator):
     running_emulators = list_running_emulators()
     for i in running_emulators:

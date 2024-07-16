@@ -3,14 +3,13 @@
 # Function to handle cleanup on script exit
 cleanup() {
     echo "Cleaning up..."
-    # Use fuser to kill the process using the specified port
-    fuser -k -n tcp $port
+    pkill -f "gunicorn.*:$port"
     echo "Killed process using port $port"
     exit 0
 }
 
-# Trap SIGINT (Ctrl+C) to run the cleanup function
-trap cleanup SIGINT
+# Trap SIGINT (Ctrl+C) and SIGTERM to run the cleanup function
+trap cleanup SIGINT SIGTERM
 
 # Check if argument is provided, if not set default values
 if [ -z "$1" ]; then
@@ -37,7 +36,6 @@ fi
 function validate_ip () {
     local IP=$1
     local stat=1
-
     if [[ $IP =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         OIFS=$IFS
         IFS='.'
@@ -72,5 +70,6 @@ function validate_port () {
 validate_ip $ip_address
 validate_port $port
 
-python3 -m poetry run gunicorn -b ${ip_address}:${port} mobsf.MobSF.wsgi:application --workers=1 --threads=10 --timeout=3600 \
+# Run gunicorn in the foreground
+exec python3 -m poetry run gunicorn -b ${ip_address}:${port} mobsf.MobSF.wsgi:application --workers=2 --threads=10 --timeout=3600 \
     --log-level=critical --log-file=- --access-logfile=- --error-logfile=- --capture-output
