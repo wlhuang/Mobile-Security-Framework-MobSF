@@ -100,8 +100,6 @@ urlpatterns = [
     re_path(r'^api/v1/list_suppressions$', api_sz.api_list_suppressions),
     re_path(r'^api/v1/delete_suppression$', api_sz.api_delete_suppression),
     # Dynamic Analysis
-    #re_path(r'^api/v1/dynamic/machines$', api_dz.api_machines),  #L's changes  added for the new apis requiured
-    #re_path(r'^api/v1/dynamic/queue$', api_dz.api_queue),         #L's changes
     re_path(r'^api/v1/dynamic/get_apps$', api_dz.api_get_apps),
     re_path(r'^api/v1/dynamic/start_analysis$', api_dz.api_start_analysis),
     re_path(r'^api/v1/dynamic/queue$', api_dz.api_queue),

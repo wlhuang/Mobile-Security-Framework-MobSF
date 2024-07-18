@@ -72,7 +72,7 @@ def api_scan(request):
         if 'type' in resp:
             resp = static_analyzer_ios(request, checksum, True)
         if 'error' in resp:
-            response = make_api_response(resp, 500)
+            response = make_api_response(resp, 500) 
         else:
             response = make_api_response(resp, 200)
     # IPA
@@ -89,6 +89,7 @@ def api_scan(request):
             response = make_api_response(resp, 500)
         else:
             response = make_api_response(resp, 200)
+    print("response:", response)
     return response
 
 

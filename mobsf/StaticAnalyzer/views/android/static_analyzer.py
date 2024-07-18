@@ -10,6 +10,7 @@ import threading
 from threading import *
 from pathlib import Path
 
+from mobsf.MobSF.views.api.api_middleware import make_api_response
 import mobsf.MalwareAnalyzer.views.Trackers as Trackers
 import mobsf.MalwareAnalyzer.views.VirusTotal as VirusTotal
 from mobsf.MalwareAnalyzer.views.android import (
@@ -116,13 +117,19 @@ def timeout_func(request):
     logger.error("Static analysis terminated due to time limit")
     logger.warning("Reload page to redo the analysis")
     os.kill(os.getpid(), signal.SIGKILL)
-    
+
 @login_required
 def static_analyzer(request, checksum, api=False):
     """Do static analysis on an request and save to db."""
     try:
+        if 'timeout' in request.POST:
+            timeout = int(request.POST['timeout'])
+        else:
+            timeout = 2510
+    
+        print('timeout:', timeout)
          # Create a Timer object with the desired timeout value
-        t = Timer(2510, timeout_func, args=[request], kwargs=None)  # Adjust timeout value as needed
+        t = Timer(timeout, timeout_func, args=[request], kwargs=None)  # Adjust timeout value as needed
 
         # Start the timer
         t.start()
@@ -533,7 +540,11 @@ def static_analyzer(request, checksum, api=False):
         logger.error("Analysis process timed out")
         exp = "An error occurred due to a timeout."
         msg = "Analysis has exceeded the time limit."
-        return print_n_send_error_response(request, msg, api, exp)
+        data =  {"status":"failed",
+                 "error": "the static scan time out, please increase the tim out value to increase the time limit of the static scan."}
+        return make_api_response(data, api)
+
+        #return print_n_send_error_response(request, msg, api, exp)
         
     except Exception as excep:
         logger.exception('Error Performing Static Analysis')
