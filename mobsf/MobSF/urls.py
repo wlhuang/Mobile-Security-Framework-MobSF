@@ -107,7 +107,6 @@ urlpatterns = [
     re_path(r'^api/v1/dynamic/get_analysis_result$', api_dz.api_get_analysis_result),
     re_path(r'^api/v1/dynamic/stop_analysis$', api_dz.api_stop_analysis),
     re_path(r'^api/v1/dynamic/report_json$', api_dz.api_dynamic_report),
-    re_path(r'^api/v1/dynamic/acube_json$', api_dz.api_dynamic_report_acube),                 #Url added by Xavier. Basically just copy paste from report_json but change name only.
     # re_path(r'^get_frida_output/?$', frida.get_frida_output, name='get_frida_output'),  #Url added by Xavier
     # Android Specific
     re_path(r'^api/v1/android/logcat$', api_dz.api_logcat),
