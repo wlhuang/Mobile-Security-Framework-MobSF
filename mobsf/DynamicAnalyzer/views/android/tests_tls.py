@@ -5,7 +5,7 @@ import logging
 from threading import Thread
 from json import dump
 from pathlib import Path
-
+from .logging_utils import set_avd_name
 from django.conf import settings
 
 from mobsf.DynamicAnalyzer.views.android.frida_core import (
@@ -16,7 +16,8 @@ from mobsf.DynamicAnalyzer.tools.webproxy import (
     get_traffic,
     stop_httptools,
 )
-
+from EmulatorLauncher import emulator_name_to_instance
+from mobsf.DynamicAnalyzer.views.android.environment import Environment
 
 HTTPS = re.compile(r'(GET|POST|HEAD|PUT|DELETE|'
                    r'CONNECT|OPTIONS|TRACE|PATCH) https:\/\/')
@@ -48,9 +49,12 @@ def run_tls_tests(request, md5_hash, env, package, test_pkg, duration):
         'pin_or_transparency_bypassed': False,
         'has_cleartext': False,
     }
+    set_avd_name(emulator_name_to_instance(request.POST.get('deviceidentifier')))
+    deviceidentifier = request.POST.get('deviceidentifier')
+    env = Environment(request.POST.get('deviceidentifier'))
     version = env.get_android_version()
-    env.enable_adb_reverse_tcp(version)
-    env.set_global_proxy(version)
+    #env.enable_adb_reverse_tcp(version)
+    #env.set_global_proxy(version)
     # Test 1: Remove Root CA, Run App, No TLS Pinning Bypass
     env.adb_command(['am', 'force-stop', package], True)
     logger.info('Running TLS Misconfiguration Test')
@@ -89,6 +93,7 @@ def run_tls_tests(request, md5_hash, env, package, test_pkg, duration):
         None,
         None,
         None,
+        deviceidentifier,
     )
     frd.spawn()
     Thread(target=frd.session, args=(None, None), daemon=True).start()
@@ -104,4 +109,5 @@ def run_tls_tests(request, md5_hash, env, package, test_pkg, duration):
     out = Path(settings.UPLD_DIR) / md5_hash / 'mobsf_tls_tests.json'
     with out.open('w', encoding='utf-8') as target:
         dump(test_status, target)
+    frd.despawn()
     return test_status

@@ -73,6 +73,13 @@ def api_start_analysis(request):
         'hash': hash_value,
         'timeout': timeout
     }
+
+    if 'cmd' in request.POST:
+        scan_params['cmd'] = request.POST['cmd']
+
+    if 'adb_command_action' in request.POST:
+            scan_params['adb_command_action'] = request.POST['adb_command_action']
+
     task_id = emulator_manager.queue_scan(avd_name, scan_params)
 
     if task_id == 'failed':

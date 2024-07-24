@@ -3,11 +3,11 @@ from queue import Queue
 import logging
 import json
 from pathlib import Path
-
+import requests
 from .dynamic_analyzer import dynamic_analyzer
 from .logging_utils import set_avd_name
 from EmulatorLauncher import *
-
+from mobsf.MobSF.utils import api_key
 logger = logging.getLogger(__name__)
 
 class EmulatorManager:
@@ -36,17 +36,54 @@ class EmulatorManager:
         
         return {"available_avds": status}
 
+    def get_package_name(self, hash):
+        api_url = 'http://127.0.0.1:8000/api/v1/scan'
+        headers = {
+            'X-Mobsf-Api-Key': api_key(),
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        data = {
+            'hash': hash
+        }
+        
+        try:
+            response = requests.post(api_url, headers=headers, data=data)
+            response.raise_for_status()
+            json_data = response.json()
+            return json_data.get('package_name')
+        except requests.RequestException as e:
+            logger.error(f"Error calling API for hash {hash}: {str(e)}")
+            return None
+        
     def get_queue_status(self):
         status = {}
         with self.lock:
             for avd_name, emulator in self.emulators.items():
                 queue_items = list(emulator['queue'].queue)
                 running_task = emulator.get('current_task', None)
+                
+                queued_tasks = []
+                for item in queue_items:
+                    hash = item[0]
+                    package_name = self.get_package_name(hash)
+                    queued_tasks.append({
+                        'hash': hash,
+                        'package_name': package_name
+                    })
+                
+                current_task_info = None
+                if running_task:
+                    package_name = self.get_package_name(running_task)
+                    current_task_info = {
+                        'hash': running_task,
+                        'package_name': package_name
+                    }
+                
                 status[avd_name] = {
                     'queue_size': emulator['queue'].qsize() + (1 if running_task else 0),
                     'running': emulator['running'],
-                    'current_task': running_task,
-                    'queued_tasks': [item[0] for item in queue_items]
+                    'current_task': current_task_info,
+                    'queued_tasks': queued_tasks
                 }
         return status
 
@@ -79,23 +116,26 @@ class EmulatorManager:
         emulator['queue'].put((task_id, scan_params))
         if not emulator['running']:
             result = self.start_emulator_thread(avd_name,scan_params)
-        if result == 'failed':
-            task_id == 'failed'
+            if result == 'failed':
+                task_id = 'failed'
         return task_id
 
-    def start_emulator_thread(self, avd_name,scan_params):
+    def start_emulator_thread(self, avd_name, scan_params):
         emulator = self.emulators[avd_name]
         emulator['running'] = True
         emulator['thread'] = threading.Thread(target=self.process_emulator_queue, args=(avd_name,))
         emulator['thread'].start()
-        while count <= int(scan_params['timeout']):
-           time.sleep(1)
-           count += 1
-           if emulator_name_to_instance(avd_name) not in list_running_emulators():
-               time.sleep(4)
-               count += 4
-               if emulator_name_to_instance(avd_name) not in list_running_emulators():
-                   return 'success'
+
+        timeout = int(scan_params['timeout'])
+        start_time = time.time()
+        
+        time.sleep(10)
+
+        while time.time() - start_time < timeout:
+            if emulator_name_to_instance(avd_name) in list_running_emulators():
+                return 'success'
+            time.sleep(5)
+
         stop_emulator(emulator_name_to_instance(avd_name))
         return 'failed'
 
@@ -135,6 +175,8 @@ class EmulatorManager:
                         start_emulator(avd_name)
 
             resp = dynamic_analyzer(scan_params['request'], scan_params['hash'], True, avd_name)
+            package_name = self.get_package_name(scan_params['hash'])
+            resp['package_name'] = package_name
             return resp
         except Exception as e:
             logger.error(f"Error in run_scan for {avd_name}: {str(e)}")

@@ -35,7 +35,7 @@ class Frida:
         self.package = package
         self.defaults = defaults
         self.auxiliary = auxiliary
-        self.extras = extras
+        self.extras = extras if extras is not None else {}
         self.code = code
         self.frida_dir = Path(settings.TOOLS_DIR) / 'frida_scripts' / 'android'
         self.apk_dir = Path(settings.UPLD_DIR) / self.hash
@@ -43,7 +43,6 @@ class Frida:
         self.frida_log = self.apk_dir / '{}_mobsf_frida_out.txt'.format(deviceidentifier)
         self.deps = self.apk_dir / 'mobsf_app_deps.txt'
         self.clipboard = self.apk_dir / 'mobsf_app_clipboard.txt'
-        self.avd = name_instance(get_avd_name())
         self.fpid = None
         self.stop_flag = threading.Event()
 
@@ -162,6 +161,7 @@ class Frida:
     def spawn(self):
         import frida
         """Frida Spawn."""
+        self.restart_adb_server()
         time.sleep(3)
         importlib.reload(frida)
         max_retries = 2
@@ -171,9 +171,7 @@ class Frida:
                 set_avd_name(self.deviceidentifier)
                 self.deviceidentifier = self.device_package(self.package)
                 env = Environment(self.deviceidentifier)
-                print("test1", self.avd)
-                print("test2", self.deviceidentifier)
-                set_avd_name(self.deviceidentifier)
+                print("test", self.deviceidentifier)
                 self.clean_up()
                 self.ensure_frida_server_running(env)
 
@@ -274,7 +272,19 @@ class Frida:
     def reset_stop_flag(self):
         """Reset the stop flag."""
         self.stop_flag.clear()
-        
+
+    def start_app(self, package_name):
+        try:
+            subprocess.run(['adb', 'shell', 'monkey', '-p', package_name, '-c', 'android.intent.category.LAUNCHER', '1'], 
+                        check=True, 
+                        stdout=subprocess.PIPE, 
+                        stderr=subprocess.PIPE)
+            print(f"Started {package_name}")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to start {package_name}: {e}")
+            return False
+            
     def session(self, pid=None, package=None):
         import frida
         importlib.reload(frida)
@@ -286,6 +296,8 @@ class Frida:
                 if pid and package:
                     self.fpid = pid
                     self.package = package
+
+                self.start_app(self.package)
                 try:
                     front = device.get_frontmost_application()
                     if front and front.pid != self.fpid:

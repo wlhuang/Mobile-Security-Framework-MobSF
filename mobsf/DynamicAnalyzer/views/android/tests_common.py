@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+from .logging_utils import set_avd_name
 
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
@@ -105,41 +106,57 @@ def start_activity(request, api=False):
 def activity_tester(request, api=False):
     """Exported & non exported activity Tester."""
     data = {}
+    iden = ''
     try:
-        
         test = request.POST['test']
         emulator = request.POST['deviceidentifier']
         md5_hash = request.POST['hash']
 
-
+        logger.debug('Received test: %s, emulator: %s, hash: %s', test, emulator, md5_hash)
+        set_avd_name(get_avd_name(emulator))
         emulator_list = []
+        emulator_list_2 = []
         for i in list_running_emulators():
             emulator_list.append(get_avd_name(i))
-        if emulator in emulator_list:
-            env = Environment(identifier=emulator_name_to_instance(emulator))
+            emulator_list_2.append(i)
+        
+        logger.debug('Running emulators: %s', emulator_list)
+        
+        if emulator in emulator_list_2:
+            env = Environment(emulator)
         else:
             data = {'status': 'failed',
                     'message': 'Please use a live emulator',
                     'live emulators':emulator_list}
             return send_response(data, api)
         
+        logger.debug("1001")
+        
         if not is_md5(md5_hash):
             return invalid_params(api)
+        
         app_dir = os.path.join(settings.UPLD_DIR, md5_hash + '/')
         screen_dir = os.path.join(app_dir, 'screenshots-apk/')
         if not os.path.exists(screen_dir):
             os.makedirs(screen_dir)
-        static_android_db = StaticAnalyzerAndroid.objects.get(
-            MD5=md5_hash)
+        logger.debug("1001")
+        
+        static_android_db = StaticAnalyzerAndroid.objects.get(MD5=md5_hash)
         package = static_android_db.PACKAGE_NAME
-        iden = ''
+        logger.debug("1002")
+        
         if test == 'exported':
             iden = 'Exported '
             logger.info('Exported activity tester')
+            logger.debug("1003")
             activities = python_list(static_android_db.EXPORTED_ACTIVITIES)
+            logger.debug("1004")
         else:
             logger.info('Activity tester')
+            logger.debug("1005")
             activities = python_list(static_android_db.ACTIVITIES)
+            logger.debug("1006")
+        
         logger.info('Fetching %sactivities for %s', iden, package)
         if not activities:
             msg = 'No {}Activities found'.format(iden)
@@ -147,32 +164,28 @@ def activity_tester(request, api=False):
             data = {'status': 'failed',
                     'message': msg}
             return send_response(data, api)
+        
         act_no = 0
         logger.info('Starting %sActivity Tester...', iden)
-        logger.info('%s %sActivities Identified',
-                    str(len(activities)), iden)
+        logger.info('%s %sActivities Identified', str(len(activities)), iden)
+        
         for activity in activities:
             act_no += 1
-            logger.info(
-                'Launching %sActivity - %s. %s',
-                iden,
-                str(act_no),
-                activity)
+            logger.info('Launching %sActivity - %s. %s', iden, str(act_no), activity)
             if test == 'exported':
                 file_iden = 'expact'
             else:
                 file_iden = 'act'
-            outfile = ('{}{}-{}.png'.format(
-                screen_dir,
-                file_iden,
-                act_no))
+            outfile = ('{}{}-{}.png'.format(screen_dir, file_iden, act_no))
             env.launch_n_capture(package, activity, outfile)
+        
         data = {'status': 'ok'}
     except Exception as exp:
         logger.exception('%sActivity tester', iden)
         data = {'status': 'failed', 'message': str(exp)}
         
     return send_response(data, api)
+
 
 # AJAX
 
@@ -271,7 +284,7 @@ def tls_tests(request, api=False):
     env = None
     try:
         emulator = request.POST['deviceidentifier']
-        test_duration = 25
+        test_duration = 10
         test_package = 'tls_tests'
         md5_hash = request.POST['hash']
         emulator_list = []
@@ -305,5 +318,5 @@ def tls_tests(request, api=False):
         data = {'status': 'failed', 'message': str(exp)}
     finally:
         logger.info('Test Completed. Resuming HTTPS Proxy')
-        env.configure_proxy(package, request)
+        #env.configure_proxy(package, request)
     return send_response(data, api)

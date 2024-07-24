@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 from json import dump
 
-
+import requests
 from shelljob import proc
 import threading
 
@@ -18,8 +18,10 @@ from django.conf import settings
 from django.shortcuts import render
 from django.db.models import ObjectDoesNotExist
 
+from mobsf.DynamicAnalyzer.views.android.tests_frida import instrument
+
 from mobsf.DynamicAnalyzer.views.android import operations, tests_common
-from tests_common import activity_tester
+# from tests_common import activity_tester
 from mobsf.DynamicAnalyzer.views.android.environment import (
     ANDROID_API_SUPPORTED,
     Environment,
@@ -54,7 +56,7 @@ from mobsf.MobSF.views.authorization import (
     permission_required,
 )
 from EmulatorLauncher import *
-from tests_frida import instrument
+# from tests_frida import instrument
 from mobsf.DynamicAnalyzer.views.android.queue import *
 
 logger = logging.getLogger(__name__)
@@ -680,27 +682,68 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                     msg,
                     api)
         logger.info('Testing Environment is Ready!')
-        adb_command_result = env.adb_command(request['cmd'])
-        if request['cmd']:
-            env.adb_command(request['cmd'])
+        if request.POST.get('cmd'):
+            adb_command_result = env.adb_command(request['cmd'])
             cmd_str= request['cmd']
         else:
+            adb_command_result = "Not called."
             cmd_str = "Not called."
+            pass
 
-        env.install_mobsf_ca(request['adb_command_action'])
-        if request['global_proxy_action'] == 'unset':
+        #env.install_mobsf_ca(request['adb_command_action'])
+        if request.POST.get('global_proxy_action') == 'unset':
             env.unset_global_proxy()
         else:
             pass
-        post_data = {
-        'test': 'exported', 
-        'deviceidentifier': identifier,
-        'hash': checksum
+        
+        headers = {
+            'X-Mobsf-Api-Key': api_key()
         }
 
-        activity_result = tests_common.activity_tester(post_data, True)
-        #specific_activity = tests_common.start_activity(request, True)
-        tls_result = tests_common.tls_tests(checksum, True)
+        activity_data = {
+        'test': 'exported', 
+        'deviceidentifier': identifier,
+        'hash': checksum,
+        }
+
+        tls_data = {
+            'hash': checksum,
+            'deviceidentifier': identifier,
+        }
+
+        activity_url = f"{request.scheme}://{request.get_host()}/api/v1/android/activity"
+        activity_result = requests.post(activity_url, data=activity_data, headers=headers)  
+        if activity_result.status_code == 200:
+            activity_result = activity_result.json()
+            logger.info('Activity test successful')
+        else:
+            activity_result = "Failed"
+            logger.error(f'Activity test failed')
+
+        tls_url = f"{request.scheme}://{request.get_host()}/api/v1/android/tls_tests"
+        try:
+            response = requests.post(tls_url, data=tls_data, headers=headers)
+            if response.status_code == 200:
+                try:
+                    tls_result = response.json()
+                    logger.info('TLS test successful')
+                    print("Success:", tls_result)
+                except requests.exceptions.JSONDecodeError:
+                    logger.error("Error: Received response is not in JSON format")
+                    print("Error: Received response is not in JSON format")
+                    print(response.text)
+                    tls_result = "Error: Invalid JSON response"
+            else:
+                logger.error(f'TLS test failed with status code: {response.status_code}')
+                print(f'TLS test failed with status code: {response.status_code}')
+                tls_result = f"Failed with status code: {response.status_code}"
+        except requests.RequestException as e:
+            logger.error(f"An error occurred: {e}")
+            print(f"An error occurred: {e}")
+            tls_result = f"Request failed: {str(e)}"
+    
+
+        
 
         if persistent_function() == "0":
             logger.info('Starting Frida Instrumentation...')
@@ -714,6 +757,8 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
         time.sleep(5)
         default_hooks = 'api_monitor,ssl_pinning_bypass,root_bypass,debugger_check_bypass'
         auxiliary_hooks = 'enum_class,string_catch,string_compare,enum_methods,search_class,trace_class'
+        #frida calls
+        frida_instrument_url = f"{request.scheme}://{request.get_host()}/api/v1/frida/instrument"
         frida_data = {
             'hash': checksum,
             'default_hooks': default_hooks,
@@ -723,14 +768,15 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             'frida_action': 'spawn'
             
         }
-            
-    
+        
         # Make the API call with headers
-        frida_response = instrument(frida_data, True)
-        if frida_response['status'] == 'ok':
+        frida_response = requests.post(frida_instrument_url, data=frida_data, headers=headers)   
+        logger.info('Waiting for Frida instrumentation..')
+        #time.sleep(15) # change this
+        if frida_response.status_code == 200:
             logger.info('Frida instrumentation successful')
         else:
-            logger.error(f'Frida instrumentation failed:', frida_response)
+            logger.error(f'Frida instrumentation failed: {frida_response.text}')
         
         all_hooks = default_hooks + ',' + auxiliary_hooks
         hooks_list = all_hooks.split(',')
@@ -746,10 +792,11 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                    'text': text,
                    'scripts': hooks_list,
                    'device_used': selected_avd,
-                   'command_issued': cmd_str,
-                   'command_result': adb_command_result,
+                   'cmd': cmd_str,
+                   'cmd_result': adb_command_result,
+                   'activity_result': activity_result,
                    'tls_result': tls_result,
-                   'activity_result': activity_result}
+                    }
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
         if api:
             return context
