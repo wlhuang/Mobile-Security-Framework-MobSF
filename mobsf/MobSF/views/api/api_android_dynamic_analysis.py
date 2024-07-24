@@ -63,13 +63,20 @@ def api_start_analysis(request):
     if avd_name not in avds:
         return make_api_response({'error': "Invalid AVD name specified.", 'available_avds': avds}, 422)
 
+    if 'timeout' in request.POST:
+       timeout = request.POST['timeout']
+    else:
+       timeout = 2510
     # Queue the scan for the specified emulator
     scan_params = {
         'request': request,
-        'hash': hash_value
+        'hash': hash_value,
+        'timeout': timeout
     }
     task_id = emulator_manager.queue_scan(avd_name, scan_params)
 
+    if task_id == 'failed':
+        return make_api_response({'message': f'Dynamic analysis has timed out for {avd_name}', 'hash': hash_value}, 500)
     return make_api_response({'message': f'Analysis queued successfully for {avd_name}', 'hash': task_id}, 202)
 
 @request_method(['GET'])

@@ -78,14 +78,26 @@ class EmulatorManager:
         self.save_result(task_id, None)
         emulator['queue'].put((task_id, scan_params))
         if not emulator['running']:
-            self.start_emulator_thread(avd_name)
+            result = self.start_emulator_thread(avd_name,scan_params)
+        if result == 'failed':
+            task_id == 'failed'
         return task_id
 
-    def start_emulator_thread(self, avd_name):
+    def start_emulator_thread(self, avd_name,scan_params):
         emulator = self.emulators[avd_name]
         emulator['running'] = True
         emulator['thread'] = threading.Thread(target=self.process_emulator_queue, args=(avd_name,))
         emulator['thread'].start()
+        while count <= int(scan_params['timeout']):
+           time.sleep(1)
+           count += 1
+           if emulator_name_to_instance(avd_name) not in list_running_emulators():
+               time.sleep(4)
+               count += 4
+               if emulator_name_to_instance(avd_name) not in list_running_emulators():
+                   return 'success'
+        stop_emulator(emulator_name_to_instance(avd_name))
+        return 'failed'
 
     def process_emulator_queue(self, avd_name):
         set_avd_name(avd_name)
