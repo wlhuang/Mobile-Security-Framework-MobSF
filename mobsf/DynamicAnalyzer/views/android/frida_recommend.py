@@ -161,89 +161,127 @@ PLAYSTOREINFORMATION_GROUPS = {
     ]
 }
 
+def permisions_to_script(static_android_db, selectedscript):
+        try:
+            permissions = python_list(static_android_db.PERMISSIONS)
+            #print(permissions)
+            permissionlist = []
+            for i in permissions:
+                permissionlist.append(i)
+
+            selectedscript = select_frida_script_permissions(permissions)
+
+            if len(selectedscript) == 0:
+                selectedscript = selectedscript
+            else:
+                selectedscript = selectedscript + selectedscript
+            return selectedscript
+        except ObjectDoesNotExist:
+            return 'error'
+
+
+def api_to_script(static_android_db, selectedscript):
+        try:
+            androidapis = eval(static_android_db.ANDROID_API)
+            keys = androidapis.keys()
+            keys_list = list(keys)
+            selectedscript = select_frida_script_androidapis(keys_list)
+            if len(selectedscript) == 0:
+                selectedscript = selectedscript
+            else:
+                selectedscript = selectedscript + selectedscript
+            return selectedscript
+        except ObjectDoesNotExist:
+            return 'error'
+
+def dex_to_script(static_android_db, selectedscript):
+        try:
+            dex = static_android_db.APKID
+            if len(dex) > 0:
+                if 'DEX_dex.js' not in selectedscript:
+                    selectedscript.append('DEX_dex.js')
+            return selectedscript
+        except ObjectDoesNotExist:
+             return 'error'
+        except:
+             return []
+
+def playstore_to_script(static_android_db, selectedscript):
+        try:
+            playstoredetails = python_dict(static_android_db.PLAYSTORE_DETAILS)
+            if playstoredetails:
+                results = find_matching_js_files(playstoredetails['description'], PLAYSTOREINFORMATION_GROUPS)
+                for files in results:
+                    selectedscript.append(files)
+            return selectedscript
+        except ObjectDoesNotExist:
+             return 'error'
+        except:
+             return []
+
+
 def frida_recommendations(request,api=False):
+    print('here')
     checksum = request.POST['hash']
     data = {}
+    selectedscript = []
     try:
         static_android_db = StaticAnalyzerAndroid.objects.get(
             MD5=checksum)
-        permissions = python_list(static_android_db.PERMISSIONS)
-        #print(permissions)
-        permissionlist = []
-        for i in permissions:
-            permissionlist.append(i)
+    except:
+        data = {'status':'failed',
+                'message':'static analysis has not been completed for this hash'}
+        return send_response(data, api)        
 
-        selectedscript = select_frida_script_permissions(permissions)
-
-        if len(selectedscript) == 0:
-            selectedscript = selectedscript
-        else:
-            selectedscript = selectedscript + selectedscript
-
-    except ObjectDoesNotExist:
+    print('here1')
+    result = permisions_to_script(static_android_db, selectedscript)
+    if result == 'error':
         logger.warning(
             'Failed to get Permissions. '
             'Static Analysis not completed for the app.')
         data = {'status':'failed',
                 'message':'Failed to get permissions'}
-        return send_response(data, api)
+        return send_response(data, api)             
+    selectedscript.extend(result)
 
-        
-    try:
-        static_android_db = StaticAnalyzerAndroid.objects.get(
-            MD5=checksum)
-        androidapis = eval(static_android_db.ANDROID_API)
-        keys = androidapis.keys()
-        keys_list = list(keys)
-        selectedscript = select_frida_script_androidapis(keys_list)
-        if len(selectedscript) == 0:
-            selectedscript = selectedscript
-        else:
-            selectedscript = selectedscript + selectedscript
-
-    except ObjectDoesNotExist:
-        logger.warning(
+    print('here2')
+    result = api_to_script(static_android_db, selectedscript)
+    if result == 'error':
+        logger.warning(            
             'Failed to get Android API. '
             'Static Analysis not completed for the app.')
         data = {'status':'failed',
                 'message':'Failed to get Android API'}
-        return send_response(data, api)
-        
-    try:
-        dex = static_android_db.APKID
-        if len(dex) > 0:
-            if 'DEX_dex.js' not in selectedscript:
-                selectedscript.append('DEX_dex.js')
-    except ObjectDoesNotExist:
+        return send_response(data, api)                
+    selectedscript.extend(result)
+
+    print('here3')
+    result = dex_to_script(static_android_db, selectedscript)
+    if result == 'error':
         logger.warning(
             'Failed to get Dex Files. '
             'Static Analysis not completed for the app.')
         data = {'status':'failed',
                 'message':'Failed to get Dex Files'}
-        return send_response(data, api)
-    except:
-        pass
+        return send_response(data, api)             
+    selectedscript.extend(result)
 
-    try:
-        playstoredetails = python_dict(
-            static_android_db.PLAYSTORE_DETAILS)
-        if playstoredetails:
-            results = find_matching_js_files(playstoredetails['description'], PLAYSTOREINFORMATION_GROUPS)
-            for files in results:
-                selectedscript.append(files)
-    except ObjectDoesNotExist:
+
+    print('here4')
+    result = playstore_to_script(static_android_db, checksum)
+    if result == 'error':
         logger.warning(
-            'Failed to get playstore details. '
-            'Static Analysis not completed for the app.')
+        'Failed to get playstore details. '
+        'Static Analysis not completed for the app.')
         data = {'status':'failed',
-                'message':'Failed to get playstore details'}
+            'message':'Failed to get playstore details'}
         return send_response(data, api)
-    except:
-        pass
+    selectedscript.extend(result)
 
+    print('here5')
     try: 
-        
         selectedscript = list(set(selectedscript))
+        print('final scripts:', selectedscript)
         textsuggest = []
         for scripts in selectedscript:
             textsuggest.append(scripts)
