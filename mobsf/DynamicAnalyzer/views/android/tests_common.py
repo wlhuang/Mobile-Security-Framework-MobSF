@@ -268,6 +268,7 @@ def tls_tests(request, api=False):
     logger.info('Running TLS/SSL Security tests')
     data = {}
     package = None
+    env = None
     try:
         emulator = request.POST['deviceidentifier']
         test_duration = 25

@@ -18,6 +18,7 @@ from django.conf import settings
 from django.shortcuts import render
 from django.db.models import ObjectDoesNotExist
 
+from mobsf.DynamicAnalyzer.views.android import operations, tests_common
 from mobsf.DynamicAnalyzer.views.android.environment import (
     ANDROID_API_SUPPORTED,
     Environment,
@@ -667,6 +668,17 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                     msg,
                     api)
         logger.info('Testing Environment is Ready!')
+        adb_command_result = env.adb_command(request['cmd'])
+        env.install_mobsf_ca(request['adb_command_action'])
+        if request['global_proxy_action'] == 'set':
+            env.set_global_proxy(version)
+        elif request['global_proxy_action'] == 'unset':
+            env.unset_global_proxy()
+        else:
+            pass
+        test_activity_result = tests_common.activity_tester(request, True)
+        specific_activity = tests_common.start_activity(request, True)
+        tls_result = tests_common.tls_tests(request, True)
         context = {'package': package,
                    'hash': checksum,
                    'api_key': apiKey,
