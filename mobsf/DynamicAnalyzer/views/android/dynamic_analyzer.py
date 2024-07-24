@@ -10,7 +10,7 @@ from json import dump
 
 
 from shelljob import proc
-
+import threading
 
 from django.http import (HttpResponseRedirect,
                          StreamingHttpResponse)
@@ -19,6 +19,7 @@ from django.shortcuts import render
 from django.db.models import ObjectDoesNotExist
 
 from mobsf.DynamicAnalyzer.views.android import operations, tests_common
+from tests_common import activity_tester
 from mobsf.DynamicAnalyzer.views.android.environment import (
     ANDROID_API_SUPPORTED,
     Environment,
@@ -53,6 +54,7 @@ from mobsf.MobSF.views.authorization import (
     permission_required,
 )
 from EmulatorLauncher import *
+from tests_frida import instrument
 from mobsf.DynamicAnalyzer.views.android.queue import *
 
 logger = logging.getLogger(__name__)
@@ -445,7 +447,17 @@ def android_dynamic_analysis(request, api=False):
         logger.exception('Dynamic Analysis')
         return print_n_send_error_response(request, exp, api)
     
+def persistent_function():
+    if not hasattr(persistent_function, 'has_run'):
+        result = "0"
+        persistent_function.has_run = True
+    else:
+        # Subsequent behavior
+        result = "1"
+    
+    return result
 
+lock = threading.Lock()
 
 @login_required
 @permission_required(Permissions.SCAN)
@@ -676,15 +688,53 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             cmd_str = "Not called."
 
         env.install_mobsf_ca(request['adb_command_action'])
-        if request['global_proxy_action'] == 'set':
-            env.set_global_proxy(version)
-        elif request['global_proxy_action'] == 'unset':
+        if request['global_proxy_action'] == 'unset':
             env.unset_global_proxy()
         else:
             pass
-        test_activity_result = tests_common.activity_tester(request, True)
-        specific_activity = tests_common.start_activity(request, True)
-        tls_result = tests_common.tls_tests(request, True)
+        post_data = {
+        'test': 'exported', 
+        'deviceidentifier': identifier,
+        'hash': checksum
+        }
+
+        activity_result = tests_common.activity_tester(post_data, True)
+        #specific_activity = tests_common.start_activity(request, True)
+        tls_result = tests_common.tls_tests(checksum, True)
+
+        if persistent_function() == "0":
+            logger.info('Starting Frida Instrumentation...')
+        
+        else:
+            logger.info("Waiting for existing Frida instrumentation to complete.")
+
+        
+        lock.acquire()
+        logger.info('Waiting 5 seconds.')
+        time.sleep(5)
+        default_hooks = 'api_monitor,ssl_pinning_bypass,root_bypass,debugger_check_bypass'
+        auxiliary_hooks = 'enum_class,string_catch,string_compare,enum_methods,search_class,trace_class'
+        frida_data = {
+            'hash': checksum,
+            'default_hooks': default_hooks,
+            'auxiliary_hooks': auxiliary_hooks,
+            'frida_code': '"Java.perform(function()+%7B%0A++%2F%2F+Use+send()+for+logging%0A%7D)%3B"',
+            'deviceidentifier': identifier,
+            'frida_action': 'spawn'
+            
+        }
+            
+    
+        # Make the API call with headers
+        frida_response = instrument(frida_data, True)
+        if frida_response['status'] == 'ok':
+            logger.info('Frida instrumentation successful')
+        else:
+            logger.error(f'Frida instrumentation failed:', frida_response)
+        
+        all_hooks = default_hooks + ',' + auxiliary_hooks
+        hooks_list = all_hooks.split(',')
+        lock.release()
         context = {'package': package,
                    'hash': checksum,
                    'api_key': apiKey,
@@ -694,8 +744,12 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                    'exported_activities': exported_activities,
                    'title': 'Dynamic Analyzer',
                    'text': text,
-                   'scripts': file_list_without_extension,
-                   'device_used': selected_avd}
+                   'scripts': hooks_list,
+                   'device_used': selected_avd,
+                   'command_issued': cmd_str,
+                   'command_result': adb_command_result,
+                   'tls_result': tls_result,
+                   'activity_result': activity_result}
         template = 'dynamic_analysis/android/dynamic_analyzer.html'
         if api:
             return context

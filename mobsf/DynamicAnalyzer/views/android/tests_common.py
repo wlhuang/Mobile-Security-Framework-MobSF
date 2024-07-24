@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 @permission_required(Permissions.SCAN)
 @require_http_methods(['POST'])
 def start_activity(request, api=False):
-    """Lunch a specific activity."""
+    """Launch a specific activity."""
     try:
 
         activity = request.POST['activity']
