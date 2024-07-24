@@ -9,7 +9,6 @@ import threading
 import time
 from base64 import b64encode
 from hashlib import md5
-
 from django.conf import settings
 
 from OpenSSL import crypto
@@ -44,21 +43,15 @@ ANDROID_API_SUPPORTED = 34
 
 class Environment:
     def __init__(self, identifier=None):
-        self.identifier = identifier
         self.lock = threading.Lock()
-        while True:
-            try:
-                self.identifier.index("emulator")
-            except ValueError:
-                time.sleep(2)
-                self.identifier = get_avd_instance()
-            else:
-                break 
         
-        self.identifier = get_avd_instance()
+        self.identifier = identifier
+        
         self.tools_dir = settings.TOOLS_DIR
         self.frida_str = f'MobSF-Frida-{frida_version}'.encode('utf-8')
         self.xposed_str = b'MobSF-Xposed'
+
+        self.identifier2 = get_avd_instance()
 
     def wait(self, sec):
         """Wait in Seconds."""
@@ -83,43 +76,43 @@ class Environment:
     def connect(self):
         """ADB Connect."""
         self.lock.acquire()
-        if not self.identifier:
+        if not self.identifier2:
             return False
         avd_name = get_avd_name()
-        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
+        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier2)
         self.run_subprocess_verify_output([get_adb(),
                                            'connect',
-                                           self.identifier])
+                                           self.identifier2])
         self.lock.release()
 
     def connect_n_mount(self):
         """Test ADB Connection."""
         avd_name = get_avd_name()
         self.lock.acquire()
-        if not self.identifier:
+        if not self.identifier2:
             return False
         
         self.adb_command(['kill-server'])
         self.adb_command(['start-server'], False, True)
         logger.info('ADB Restarted')
         self.wait(2) #test
-        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier)
+        logger.info('[%s] Connecting to Android %s', avd_name, self.identifier2)
         if not self.run_subprocess_verify_output([get_adb(),
                                                  'connect',
-                                                  self.identifier]):
+                                                  self.identifier2]):
             return False
         logger.info('[%s] Restarting ADB Daemon as root', avd_name)
         self.wait(2)
         if not self.run_subprocess_verify_output([get_adb(),
                                                   '-s',
-                                                  self.identifier,
+                                                  self.identifier2,
                                                   'root']):
             return False
         logger.info('[%s] Reconnecting to Android Device', avd_name)
         # connect again with root adb
         if not self.run_subprocess_verify_output([get_adb(),
                                                   'connect',
-                                                  self.identifier]):
+                                                  self.identifier2]):
             return False
         # identify environment
         runtime = self.get_environment()
@@ -172,10 +165,8 @@ class Environment:
             '-d',
             '-g',
             apk_path], False, True)
-        self.lock.release()
         if not out:
             logger.error('[%s] adb install failed', avd_name)
-            self.lock.release()
             return False, 'adb install failed'
         
         # Change battery optimization settings to "Unrestricted"
@@ -192,6 +183,7 @@ class Environment:
         else:
             logger.info('[%s] Accessibility permission not found in installed APK', avd_name)
 
+        self.lock.release()
         # Verify Installation
         return self.is_package_installed(package, out.decode('utf-8', 'ignore')), out.decode('utf-8', 'ignore')
 
@@ -236,14 +228,27 @@ class Environment:
         if shell:
             args += ['shell']
         args += cmd_list
+
+        # Log the command being executed
+        logger.debug(f"[{avd_name}] Executing ADB command: {' '.join(map(str, args))}")
+
+        # Check for None values in args
+        if None in args:
+            logger.error(f"[{avd_name}] None value found in ADB command arguments: {args}")
+            return None
+
         try:
             result = subprocess.check_output(
                 args,  # lgtm [py/command-line-injection]
                 stderr=subprocess.STDOUT)
             return result
-        except Exception:
+        except subprocess.CalledProcessError as e:
             if not silent:
-                logger.exception('[%s] Error Running ADB Command', avd_name)
+                logger.exception(f'[{avd_name}] Error Running ADB Command: {e.output.decode()}')
+            return None
+        except Exception as e:
+            if not silent:
+                logger.exception(f'[{avd_name}] Unexpected error running ADB Command: {str(e)}')
             return None
 
     def dz_cleanup(self, bin_hash):
@@ -308,7 +313,7 @@ class Environment:
         with self.lock:  # Use a context manager for the lock
             # Determine proxy IP based on Android version
             if version < 5:
-                proxy_ip = get_proxy_ip(self.identifier)
+                proxy_ip = get_proxy_ip(self.identifier2)
             else:
                 proxy_ip = settings.PROXY_IP
 
@@ -386,7 +391,7 @@ class Environment:
         tcp = 'tcp:{}'.format(proxy_port)
         try:
             proc = subprocess.Popen([get_adb(),
-                                     '-s', self.identifier,
+                                     '-s', self.identifier2,
                                      'reverse', tcp, tcp],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
@@ -594,7 +599,7 @@ class Environment:
                        'This VM cannot be used for '
                        'Dynamic Analysis.')
             proc = subprocess.Popen([get_adb(),
-                                     '-s', self.identifier,
+                                     '-s', self.identifier2,
                                      'shell',
                                      'touch',
                                      '/system/test'],
@@ -644,7 +649,7 @@ class Environment:
         try:
             out = subprocess.check_output(
                 [get_adb(),
-                 '-s', self.identifier,
+                 '-s', self.identifier2,
                  'shell',
                  'cat',
                  '/system/' + agent_file])
@@ -691,17 +696,16 @@ class Environment:
 
     def xposed_setup(self, android_version):
         """Setup Xposed."""
-        avd_name = get_avd_name()
         xposed_dir = 'onDevice/xposed/'
         xposed_modules = xposed_dir + 'modules/'
         # Install MobSF Agents for Xposed
         clip_dump_apk = os.path.join(self.tools_dir,
                                      xposed_dir,
                                      'ClipDump.apk')
-        logger.info('[%s] Installing MobSF Clipboard Dumper', avd_name)
+        logger.info('Installing MobSF Clipboard Dumper')
         self.adb_command(['install', '-r', clip_dump_apk])
         if android_version < 5:
-            logger.info('[%s] Installing Xposed for Kitkat and below', avd_name)
+            logger.info('Installing Xposed for Kitkat and below')
             xposed_apk = os.path.join(self.tools_dir,
                                       xposed_dir,
                                       'Xposed.apk')
@@ -711,12 +715,12 @@ class Environment:
             droidmon = os.path.join(self.tools_dir,
                                     xposed_modules,
                                     'Droidmon.apk')
-            logger.info('[%s] Installing Droidmon API Analyzer', avd_name)
+            logger.info('Installing Droidmon API Analyzer')
             self.adb_command(['install', '-r', droidmon])
-            logger.info('[%s] Copying Droidmon hooks config', avd_name)
+            logger.info('Copying Droidmon hooks config')
             self.adb_command(['push', hooks, '/data/local/tmp/'])
         else:
-            logger.info('[%s] Installing Xposed for Lollipop and above', avd_name)
+            logger.info('Installing Xposed for Lollipop and above')
             xposed_apk = os.path.join(self.tools_dir,
                                       xposed_dir,
                                       'XposedInstaller_3.1.5.apk')
@@ -737,17 +741,17 @@ class Environment:
         bluepill = os.path.join(self.tools_dir,
                                 xposed_modules,
                                 'AndroidBluePill.apk')
-        logger.info('[%s] Installing JustTrustMe', avd_name)
+        logger.info('Installing JustTrustMe')
         self.adb_command(['install', '-r', justrustme])
-        logger.info('[%s] Installing SSLUnpinning', avd_name)
+        logger.info('Installing SSLUnpinning')
         self.adb_command(['install', '-r', sslunpin])
-        logger.info('[%s] Installing ProxyOn', avd_name)
+        logger.info('Installing ProxyOn')
         self.adb_command(['install', '-r', proxyon])
-        logger.info('[%s] Installing RootCloak', avd_name)
+        logger.info('Installing RootCloak')
         self.adb_command(['install', '-r', rootcloak])
-        logger.info('[%s] Installing Android BluePill', avd_name)
+        logger.info('Installing Android BluePill')
         self.adb_command(['install', '-r', bluepill])
-        logger.info('[%s] Launching Xposed Framework.', avd_name)
+        logger.info('[%s] Launching Xposed Framework.')
         xposed_installer = ('de.robv.android.xposed.installer/'
                             'de.robv.android.xposed.installer.'
                             'WelcomeActivity')
@@ -756,10 +760,9 @@ class Environment:
 
     def frida_setup(self):
         """Setup Frida."""
-        avd_name = get_avd_name()
         frida_arch = None
         arch = self.get_android_arch()
-        logger.info('[%s] Android OS architecture identified as %s', avd_name, arch)
+        logger.info('Android OS architecture identified as %s', arch)
         if arch in ['armeabi-v7a', 'armeabi']:
             frida_arch = 'arm'
         elif arch == 'arm64-v8a':
@@ -779,23 +782,21 @@ class Environment:
             msg = ('Cannot download frida-server binary. You will need'
                    f' {frida_bin} in {settings.DWD_DIR} for '
                    'Dynamic Analysis to work')
-            logger.error('[%s] %s', avd_name, msg)
+            logger.error('%s', msg)
             return
         frida_path = os.path.join(settings.DWD_DIR, frida_bin)
-        logger.info('[%s] Copying frida server for %s', avd_name, frida_arch)
+        logger.info('Copying frida server for %s', frida_arch)
         self.adb_command(['push', frida_path, '/system/fd_server'])
         self.adb_command(['chmod', '755', '/system/fd_server'], True)
 
     def run_frida_server(self):
         """Start Frida Server."""
-        avd_name = get_avd_name()
         check = self.adb_command(['ps'], True)
         if b'fd_server' in check:
-            logger.info('[%s] Frida Server is already running', avd_name)
+            logger.info('Frida Server is already running')
             return
 
         def start_frida():
-            avd_name = get_avd_name()
             fnull = open(os.devnull, 'w')
             argz = [get_adb(),
                     '-s',
@@ -806,6 +807,30 @@ class Environment:
         trd = threading.Thread(target=start_frida)
         trd.daemon = True
         trd.start()
-        logger.info('[%s] Starting Frida Server', avd_name)
-        logger.info('[%s] Waiting for 2 seconds...', avd_name)
+        logger.info(' Starting Frida Server')
+        logger.info('Waiting for 2 seconds...')
+        time.sleep(2)
+
+
+    def kill_frida_server(self):
+        """Kill Frida Server."""
+        check = self.adb_command(['ps'], True)
+        if b'fd_server' not in check:
+            logger.info('Frida Server is not running')
+            return
+        
+        def stop_frida():
+            fnull = open(os.devnull, 'w')
+            argz = [get_adb(),
+                    '-s',
+                    self.identifier,
+                    'shell',
+                    'pkill -f fd_server']
+            subprocess.call(argz, stdout=fnull, stderr=subprocess.STDOUT)
+        
+        trd = threading.Thread(target=stop_frida)
+        trd.daemon = True
+        trd.start()
+        logger.info('Stopping Frida Server')
+        logger.info('Waiting for 2 seconds...')
         time.sleep(2)

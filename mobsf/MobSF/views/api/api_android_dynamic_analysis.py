@@ -364,3 +364,20 @@ def api_dynamic_view_file(request):
     if 'error' in resp:
         return make_api_response(resp, 500)
     return make_api_response(resp, 200)
+
+
+# acube_json created by xav
+@request_method(['POST'])
+@csrf_exempt
+def api_dynamic_report_acube(request):
+    """POST - Dynamic Analysis report."""
+    if 'hash' not in request.POST:
+        return make_api_response(
+            {'error': 'Missing Parameters'}, 422)
+    resp = report.view_report_acube(
+        request,
+        request.POST['hash'],
+        True)
+    if 'error' in resp:
+        return make_api_response(resp, 500)
+    return make_api_response(resp, 200)

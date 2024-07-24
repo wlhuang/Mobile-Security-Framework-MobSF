@@ -669,6 +669,12 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                     api)
         logger.info('Testing Environment is Ready!')
         adb_command_result = env.adb_command(request['cmd'])
+        if request['cmd']:
+            env.adb_command(request['cmd'])
+            cmd_str= request['cmd']
+        else:
+            cmd_str = "Not called."
+
         env.install_mobsf_ca(request['adb_command_action'])
         if request['global_proxy_action'] == 'set':
             env.set_global_proxy(version)

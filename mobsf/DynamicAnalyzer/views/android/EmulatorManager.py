@@ -126,6 +126,14 @@ class EmulatorManager:
             emulator_instance = emulator_name_to_instance(avd_name)
             if emulator_instance not in list_running_emulators():
                 start_emulator(avd_name)
+            else:
+                running_emulators = list_running_emulators()
+                for emulator in running_emulators:
+                    if  get_avd_name(emulator) == avd_name:
+                        logger.info(f"Stopping emulator: {emulator} for AVD: {avd_name}")
+                        stop_emulator(emulator)
+                        start_emulator(avd_name)
+
             resp = dynamic_analyzer(scan_params['request'], scan_params['hash'], True, avd_name)
             return resp
         except Exception as e:

@@ -5,9 +5,9 @@ import os
 import re
 import json
 from pathlib import Path
-from threading import Thread
+import threading
 import logging
-
+import time
 from django.shortcuts import render
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
@@ -64,6 +64,7 @@ def get_runtime_dependencies(request, api=False):
     return send_response(data, api)
 # AJAX
 
+lock = threading.Lock()
 
 @login_required
 @permission_required(Permissions.SCAN)
@@ -81,6 +82,7 @@ def instrument(request, api=False):
         default_hooks = request.POST['default_hooks']
         auxiliary_hooks = request.POST['auxiliary_hooks']
         code = request.POST['frida_code']
+        deviceidentifier = request.POST['deviceidentifier']
         # Fill extras
         extras = {}
         class_name = request.POST.get('class_name')
@@ -102,17 +104,20 @@ def instrument(request, api=False):
         if not package and not new_pkg:
             return invalid_params(api)
         frida_obj = Frida(md5_hash,
-                          package,
-                          default_hooks.split(','),
-                          auxiliary_hooks.split(','),
-                          extras,
-                          code)
+                        package,
+                        default_hooks.split(','),
+                        auxiliary_hooks.split(','),
+                        extras,
+                        code,
+                        deviceidentifier)
         if action == 'spawn':
             logger.info('Starting Instrumentation')
             frida_obj.spawn()
+            data['message'] = 'Frida instrumentation successful'
         elif action == 'ps':
             logger.info('Enumerating running applications')
             data['message'] = frida_obj.ps()
+            print()
         elif action == 'get':
             # Get injected Frida script.
             data['message'] = frida_obj.get_script()
@@ -126,7 +131,10 @@ def instrument(request, api=False):
                 if action == 'session':
                     logger.info('Injecting to existing frida session')
                 args = (None, None)
-            Thread(target=frida_obj.session, args=args, daemon=True).start()
+            frida_thread = threading.Thread(target=frida_obj.session, args=args, daemon=True)
+            frida_thread.start()
+            time.sleep(15)
+            frida_obj.stop()
         data['status'] = 'ok'
     except Exception as exp:
         logger.exception('Instrumentation failed')
@@ -270,7 +278,7 @@ def get_dependencies(package, checksum):
     if location.exists():
         location.write_text('')
     frd.spawn()
-    Thread(target=frd.session, args=(None, None), daemon=True).start()
+    threading.Thread(target=frd.session, args=(None, None), daemon=True).start()
 
 
 def dependency_analysis(package, app_dir):
