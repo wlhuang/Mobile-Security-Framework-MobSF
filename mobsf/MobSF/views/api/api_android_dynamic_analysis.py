@@ -21,6 +21,7 @@ from EmulatorLauncher import list_avds, list_running_emulators, get_avd_name, st
 
 from mobsf.DynamicAnalyzer.views.android.EmulatorManager import emulator_manager
 
+default_timeout_value = 2510
 
 # Dynamic Analyzer APIs
 @request_method(['GET'])
@@ -66,7 +67,7 @@ def api_start_analysis(request):
     if 'timeout' in request.POST:
        timeout = request.POST['timeout']
     else:
-       timeout = 2510
+       timeout = default_timeout_value
     # Queue the scan for the specified emulator
     scan_params = {
         'request': request,
