@@ -104,13 +104,8 @@ def frida_logs(request, api=False):
             data['message'] = 'Invalid hash'
             return send_response(data, api)
         if stream:
-            print('hash:', apphash)
-            print('deviceidentifier:', deviceidentifier)
-            print('stream;', stream)
             apk_dir = os.path.join(settings.UPLD_DIR, apphash + '/')
-            frida_logs = os.path.join(apk_dir, '{}_mobsf_frida_out.txt'.format(emulator_name_to_instance(deviceidentifier)))
-            print(apk_dir)
-            print(frida_logs)
+            frida_logs = os.path.join(apk_dir, '{}_mobsf_frida_out.txt'.format(deviceidentifier))
             if not is_file_exists(frida_logs):
                 print('does not exists')
                 return send_response(data, api)
