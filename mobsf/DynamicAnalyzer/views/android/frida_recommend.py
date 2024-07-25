@@ -221,7 +221,7 @@ def playstore_to_script(static_android_db, selectedscript):
 
 
 def frida_recommendations(request,api=False):
-    print('here')
+
     checksum = request.POST['hash']
     data = {}
     selectedscript = []
@@ -233,7 +233,7 @@ def frida_recommendations(request,api=False):
                 'message':'static analysis has not been completed for this hash'}
         return send_response(data, api)        
 
-    print('here1')
+
     result = permisions_to_script(static_android_db, selectedscript)
     if result == 'error':
         logger.warning(
@@ -244,7 +244,7 @@ def frida_recommendations(request,api=False):
         return send_response(data, api)             
     selectedscript.extend(result)
 
-    print('here2')
+
     result = api_to_script(static_android_db, selectedscript)
     if result == 'error':
         logger.warning(            
@@ -255,7 +255,7 @@ def frida_recommendations(request,api=False):
         return send_response(data, api)                
     selectedscript.extend(result)
 
-    print('here3')
+
     result = dex_to_script(static_android_db, selectedscript)
     if result == 'error':
         logger.warning(
@@ -267,7 +267,7 @@ def frida_recommendations(request,api=False):
     selectedscript.extend(result)
 
 
-    print('here4')
+
     result = playstore_to_script(static_android_db, checksum)
     if result == 'error':
         logger.warning(
@@ -278,7 +278,7 @@ def frida_recommendations(request,api=False):
         return send_response(data, api)
     selectedscript.extend(result)
 
-    print('here5')
+
     try: 
         selectedscript = list(set(selectedscript))
         print('final scripts:', selectedscript)

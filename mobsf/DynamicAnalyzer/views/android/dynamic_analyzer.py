@@ -55,6 +55,12 @@ from mobsf.MobSF.views.authorization import (
     Permissions,
     permission_required,
 )
+from frida_recommend import(
+    api_to_script,
+    permisions_to_script,
+    dex_to_script,
+    playstore_to_script,
+)
 from EmulatorLauncher import *
 # from tests_frida import instrument
 from mobsf.DynamicAnalyzer.views.android.queue import *
@@ -542,68 +548,41 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             logger.warning(
                 'Failed to get Activities. '
                 'Static Analysis not completed for the app.')
+            
+            
+        static_android_db = StaticAnalyzerAndroid.objects.get(MD5=checksum)       
 
-        # Get permissions from the static analyzer results
-        try:
-            static_android_db = StaticAnalyzerAndroid.objects.get(
-                MD5=checksum)
-            permissions = python_list(static_android_db.PERMISSIONS)
-            #print(permissions)
-            permissionlist = []
-            for i in permissions:
-                permissionlist.append(i)
-            selectedscript = select_frida_script_permissions(permissions)
-            if len(selectedscript) == 0:
-                selectedscript = selectedscript
-            else:
-                selectedscript = selectedscript + selectedscript
-            #print(selectedscript)
-        except ObjectDoesNotExist:
+        result = permisions_to_script(static_android_db, selectedscript)
+        if result == 'error':
             logger.warning(
                 'Failed to get Permissions. '
-                'Static Analysis not completed for the app.')
-            
-        try:
-            static_android_db = StaticAnalyzerAndroid.objects.get(
-                MD5=checksum)
-            androidapis = eval(static_android_db.ANDROID_API)
-            keys = androidapis.keys()
-            keys_list = list(keys)
-            selectedscript = select_frida_script_androidapis(keys_list)
-            if len(selectedscript) == 0:
-                selectedscript = selectedscript
-            else:
-                selectedscript = selectedscript + selectedscript
-        except ObjectDoesNotExist:
-            logger.warning(
+                'Static Analysis not completed for the app.')           
+        selectedscript.extend(result)
+
+
+        result = api_to_script(static_android_db, selectedscript)
+        if result == 'error':
+            logger.warning(            
                 'Failed to get Android API. '
-                'Static Analysis not completed for the app.')
-            
-        try:
-            dex = static_android_db.APKID
-            if len(dex) > 0:
-                if 'DEX_dex.js' not in selectedscript:
-                    selectedscript.append('DEX_dex.js')
-        except ObjectDoesNotExist:
+                'Static Analysis not completed for the app.')              
+        selectedscript.extend(result)
+
+
+        result = dex_to_script(static_android_db, selectedscript)
+        if result == 'error':
             logger.warning(
                 'Failed to get Dex Files. '
-                'Static Analysis not completed for the app.')
-        except:
-            pass
+                'Static Analysis not completed for the app.')             
+        selectedscript.extend(result)
 
-        try:
-            playstoredetails = python_dict(
-                static_android_db.PLAYSTORE_DETAILS)
-            if playstoredetails:
-                results = find_matching_js_files(playstoredetails['description'], PLAYSTOREINFORMATION_GROUPS)
-                for files in results:
-                    selectedscript.append(files)
-        except ObjectDoesNotExist:
+
+
+        result = playstore_to_script(static_android_db, checksum)
+        if result == 'error':
             logger.warning(
-                'Failed to get playstore details. '
-                'Static Analysis not completed for the app.')
-        except:
-            pass
+            'Failed to get playstore details. '
+            'Static Analysis not completed for the app.')
+        selectedscript.extend(result)
 
         try: 
             #
