@@ -128,13 +128,15 @@ class EmulatorManager:
 
         timeout = int(scan_params['timeout'])
         start_time = time.time()
-        
-        time.sleep(10)
+    
 
         while time.time() - start_time < timeout:
-            if emulator_name_to_instance(avd_name) in list_running_emulators():
-                return 'success'
-            time.sleep(5)
+            if emulator_name_to_instance(avd_name) not in list_running_emulators():
+                time.sleep(4)
+                if emulator_name_to_instance(avd_name) not in list_running_emulators():
+                    return 'success'
+            
+            time.sleep(1)
 
         stop_emulator(emulator_name_to_instance(avd_name))
         return 'failed'
