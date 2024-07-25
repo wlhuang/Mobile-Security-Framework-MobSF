@@ -21,7 +21,9 @@ from mobsf.DynamicAnalyzer.views.android.frida_scripts import (
 from mobsf.MobSF.utils import (
     get_device,
 )
-from EmulatorLauncher import name_instance
+from EmulatorLauncher import (
+    get_avd_name,
+)
 logger = logging.getLogger(__name__)
 _FPID = None
 
@@ -42,7 +44,7 @@ class Frida:
         self.others_dir = Path(settings.TOOLS_DIR) / 'frida_scripts' / 'android' / 'others'
         self.apk_dir = Path(settings.UPLD_DIR) / self.hash
         self.api_mon = self.apk_dir / 'mobsf_api_monitor.txt'
-        self.frida_log = self.apk_dir / '{}_mobsf_frida_out.txt'.format(deviceidentifier)
+        self.frida_log = self.apk_dir / '{}_mobsf_frida_out.txt'.format(get_avd_name(deviceidentifier))
         self.deps = self.apk_dir / 'mobsf_app_deps.txt'
         self.clipboard = self.apk_dir / 'mobsf_app_clipboard.txt'
         self.fpid = None

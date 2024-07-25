@@ -20,7 +20,9 @@ from mobsf.MobSF.utils import (
 from mobsf.MobSF.views.authentication import (
     login_required,
 )
-
+from EmulatorLauncher import(
+    emulator_name_to_instance,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -92,24 +94,25 @@ def frida_logs(request, api=False):
             apphash = request.POST['hash']
             #print(apphash)
             stream = True
-            deviceidentifier = request.POST.get('deviceIdentifier', '')
+            deviceidentifier = request.POST.get('deviceidentifier', '')
             #print(deviceidentifier)
         else:
             apphash = request.GET.get('hash', '')
-            #print(apphash)
-            stream = request.GET.get('stream', '')
-            deviceidentifier = request.GET.get('deviceIdentifier', '')
-            #print(deviceidentifier)
+            stream = bool(request.GET.get('stream', ''))
+            deviceidentifier = request.GET.get('deviceidentifier', '')
         if not is_md5(apphash):
             data['message'] = 'Invalid hash'
             return send_response(data, api)
         if stream:
-            #print(deviceidentifier)
+            print('hash:', apphash)
+            print('deviceidentifier:', deviceidentifier)
+            print('stream;', stream)
             apk_dir = os.path.join(settings.UPLD_DIR, apphash + '/')
-            frida_logs = os.path.join(apk_dir, '{}_mobsf_frida_out.txt'.format(deviceidentifier))
-            #print(frida_logs)
+            frida_logs = os.path.join(apk_dir, '{}_mobsf_frida_out.txt'.format(emulator_name_to_instance(deviceidentifier)))
+            print(apk_dir)
+            print(frida_logs)
             if not is_file_exists(frida_logs):
-                #print('does not exists')
+                print('does not exists')
                 return send_response(data, api)
             with open(frida_logs, 'r',
                       encoding='utf8',
