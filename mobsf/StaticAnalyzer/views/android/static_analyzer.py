@@ -108,7 +108,7 @@ logger = logging.getLogger(__name__)
 register.filter('key', key)
 register.filter('android_component', android_component)
 register.filter('relative_path', relative_path)
-
+default_timeout_value = 3000
 
 class TimeoutException(Exception):
     pass
@@ -125,7 +125,7 @@ def static_analyzer(request, checksum, api=False):
         if 'timeout' in request.POST:
             timeout = int(request.POST['timeout'])
         else:
-            timeout = 2510
+            timeout = default_timeout_value
     
         print('timeout:', timeout)
          # Create a Timer object with the desired timeout value
