@@ -29,7 +29,7 @@ _FPID = None
 class Frida:
     lock = threading.Lock()
 
-    def __init__(self, app_hash, package, defaults, auxiliary, extras, code, deviceidentifier):
+    def __init__(self, app_hash, package, defaults, auxiliary, others_scripts, extras, code, deviceidentifier):
         self.deviceidentifier = deviceidentifier
         self.hash = app_hash
         self.package = package
@@ -38,6 +38,8 @@ class Frida:
         self.extras = extras if extras is not None else {}
         self.code = code
         self.frida_dir = Path(settings.TOOLS_DIR) / 'frida_scripts' / 'android'
+        self.others_scripts = others_scripts
+        self.others_dir = Path(settings.TOOLS_DIR) / 'frida_scripts' / 'android' / 'others'
         self.apk_dir = Path(settings.UPLD_DIR) / self.hash
         self.api_mon = self.apk_dir / 'mobsf_api_monitor.txt'
         self.frida_log = self.apk_dir / '{}_mobsf_frida_out.txt'.format(deviceidentifier)
@@ -83,6 +85,28 @@ class Frida:
             elif itm == 'trace_class' and 'class_trace' in self.extras:
                 scripts.append(class_trace(self.extras['class_trace']))
         return scripts
+    
+    def get_others_scripts(self):
+        """Get specified scripts from the others folder."""
+        scripts = []
+        for script_name in self.others_scripts:
+            script_path = self.others_dir / script_name
+            if script_path.exists():
+                try:
+                    with script_path.open('r', encoding='utf-8') as script_file:
+                        script_content = script_file.read()
+                    # Remove the .js extension from the script name and content
+                    script_name_no_ext = script_name.replace('.js', '')
+                    script_content_no_ext = script_content.replace('.js', '')
+                    scripts.append(script_content_no_ext)
+                    logger.info(f"Loaded script from others folder: {script_name_no_ext}")
+                except Exception as e:
+                    logger.warning(f"Failed to load script {script_name}: {str(e)}")
+            else:
+                logger.warning(f"Specified script not found in others folder: {script_name}")
+        
+        return scripts
+
 
     def get_script(self):
         """Get final script."""
@@ -94,6 +118,7 @@ class Frida:
         scripts.extend(self.get_scripts('default', self.defaults))
         rpc_list.extend(self.get_scripts('rpc', ['*']))
         scripts.extend(self.get_auxiliary())
+        scripts.extend(self.get_scripts('others', self.others_scripts))
         rpc_script = ','.join(rpc_list)
         rpc = f'rpc.exports = {{ \n{rpc_script}\n }};'
         combined = '\n'.join(scripts)
