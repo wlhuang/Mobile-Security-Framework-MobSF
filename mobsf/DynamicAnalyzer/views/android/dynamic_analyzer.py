@@ -744,6 +744,8 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
                     msg,
                     api)
         logger.info('Testing Environment is Ready!')
+        lock.acquire()
+        
         if request.POST.get('cmd'):
             adb_command_result = env.adb_command(request['cmd'])
             cmd_str= request['cmd']
@@ -818,10 +820,6 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             if recommendations["status"] == "ok":
                 recommended_scripts = recommendations["recommended scripts"]
 
-        
-    
-
-        
 
         if persistent_function() == "0":
             logger.info('Starting Frida Instrumentation...')
@@ -830,19 +828,20 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             logger.info("Waiting for existing Frida instrumentation to complete.")
 
         
-        lock.acquire()
         logger.info('Waiting 5 seconds.')
         time.sleep(5)
-        default_hooks = 'api_monitor,ssl_pinning_bypass,root_bypass,debugger_check_bypass'
-        auxiliary_hooks = 'enum_class,string_catch,string_compare,enum_methods,search_class,trace_class'
+        default_hooks = request.POST.get('default_hooks', 'api_monitor,ssl_pinning_bypass,root_bypass,debugger_check_bypass')
+        auxiliary_hooks = request.POST.get('auxiliary_hooks', 'enum_class,string_catch,string_compare,enum_methods,search_class,trace_class')
+        others = request.POST.get('others', ",".join(recommended_scripts))
+        frida_code = request.POST.get('frida_code', '"Java.perform(function()+%7B%0A++%2F%2F+Use+send()+for+logging%0A%7D)%3B"')
         #frida calls
         frida_instrument_url = f"{request.scheme}://{request.get_host()}/api/v1/frida/instrument"
         frida_data = {
             'hash': checksum,
             'default_hooks': default_hooks,
             'auxiliary_hooks': auxiliary_hooks,
-            "others_scripts": ",".join(recommended_scripts),
-            'frida_code': '"Java.perform(function()+%7B%0A++%2F%2F+Use+send()+for+logging%0A%7D)%3B"',
+            "others_scripts": others,
+            'frida_code': frida_code,
             'deviceidentifier': identifier,
             'frida_action': 'spawn'
             
