@@ -197,7 +197,69 @@ PLAYSTOREINFORMATION_GROUPS = {
 }
 
 
+def permisions_to_script(static_android_db, selectedscript):
+       try:
+           permissions = python_list(static_android_db.PERMISSIONS)
+           #print(permissions)
+           permissionlist = []
+           for i in permissions:
+               permissionlist.append(i)
 
+
+           selectedscript = select_frida_script_permissions(permissions)
+
+
+           if len(selectedscript) == 0:
+               selectedscript = selectedscript
+           else:
+               selectedscript = selectedscript + selectedscript
+           return selectedscript
+       except ObjectDoesNotExist:
+           return 'error'
+
+
+
+
+def api_to_script(static_android_db, selectedscript):
+       try:
+           androidapis = eval(static_android_db.ANDROID_API)
+           keys = androidapis.keys()
+           keys_list = list(keys)
+           selectedscript = select_frida_script_androidapis(keys_list)
+           if len(selectedscript) == 0:
+               selectedscript = selectedscript
+           else:
+               selectedscript = selectedscript + selectedscript
+           return selectedscript
+       except ObjectDoesNotExist:
+           return 'error'
+
+
+def dex_to_script(static_android_db, selectedscript):
+       try:
+           dex = static_android_db.APKID
+           if len(dex) > 0:
+               if 'DEX_dex.js' not in selectedscript:
+                   selectedscript.append('DEX_dex.js')
+           return selectedscript
+       except ObjectDoesNotExist:
+            return 'error'
+       except:
+            return []
+
+
+def playstore_to_script(static_android_db, selectedscript):
+       try:
+           playstoredetails = python_dict(static_android_db.PLAYSTORE_DETAILS)
+           if playstoredetails:
+               results = find_matching_js_files(playstoredetails['description'], PLAYSTOREINFORMATION_GROUPS)
+               for files in results:
+                   selectedscript.append(files)
+           return selectedscript
+       except ObjectDoesNotExist:
+            return 'error'
+       except:
+            return []
 
 
 def cut_string(input_string):
