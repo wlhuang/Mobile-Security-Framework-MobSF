@@ -741,6 +741,10 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             'deviceidentifier': identifier,
         }
 
+        recommend_data = {
+            'hash': checksum
+        }
+
         activity_url = f"{request.scheme}://{request.get_host()}/api/v1/android/activity"
         activity_result = requests.post(activity_url, data=activity_data, headers=headers)  
         if activity_result.status_code == 200:
@@ -771,6 +775,18 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             logger.error(f"An error occurred: {e}")
             print(f"An error occurred: {e}")
             tls_result = f"Request failed: {str(e)}"
+
+
+        recommend_url = f"{request.scheme}://{request.get_host()}/api/v1/frida/recommend"
+
+        recommendations_response = requests.post(recommend_url, data=recommend_data, headers=headers)
+
+        if recommendations_response.status_code == 200:
+            recommendations = recommendations_response.json()
+            if recommendations["status"] == "ok":
+                recommended_scripts = recommendations["recommended scripts"]
+
+        
     
 
         
@@ -793,6 +809,7 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
             'hash': checksum,
             'default_hooks': default_hooks,
             'auxiliary_hooks': auxiliary_hooks,
+            "others_scripts": ",".join(recommended_scripts),
             'frida_code': '"Java.perform(function()+%7B%0A++%2F%2F+Use+send()+for+logging%0A%7D)%3B"',
             'deviceidentifier': identifier,
             'frida_action': 'spawn'
@@ -808,7 +825,7 @@ def dynamic_analyzer(request, checksum, api=False, avd_name=None):
         else:
             logger.error(f'Frida instrumentation failed: {frida_response.text}')
         
-        all_hooks = default_hooks + ',' + auxiliary_hooks
+        all_hooks = default_hooks + ',' + auxiliary_hooks + ',' + ",".join(recommended_scripts)
         hooks_list = all_hooks.split(',')
         lock.release()
         context = {'package': package,

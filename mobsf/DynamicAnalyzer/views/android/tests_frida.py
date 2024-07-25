@@ -103,10 +103,15 @@ def instrument(request, api=False):
         package = get_package_name(md5_hash)
         if not package and not new_pkg:
             return invalid_params(api)
+        
+        others_scripts = request.POST.get('others_scripts', '').split(',')
+        others_scripts = [s.strip() for s in others_scripts if s.strip()]
+        
         frida_obj = Frida(md5_hash,
                         package,
                         default_hooks.split(','),
                         auxiliary_hooks.split(','),
+                        others_scripts,
                         extras,
                         code,
                         deviceidentifier)
