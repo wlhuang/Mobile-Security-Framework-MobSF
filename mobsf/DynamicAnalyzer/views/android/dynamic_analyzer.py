@@ -71,7 +71,8 @@ mobsf_path = os.environ.get('MOBSF_PATH')
 # Utilizing path for Frida
 directory_path = os.path.join(mobsf_path, 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others')
 
-mappings_path = Path('permission_mappings.json')
+mappings_path = Path('mobsf/DynamicAnalyzer/views/android/permission_mappings.json')
+
 try:
     with mappings_path.open('r', encoding='utf-8') as permission_map:
         permission_mappings = json.load(permission_map)

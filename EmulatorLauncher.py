@@ -28,17 +28,17 @@ def emulator_name_to_instance(emulator):
     emulator_name_list = []
     emulator_instance_list = []
     running_emulators = list_running_emulators()
-    print(f"Running emulators: {running_emulators}")  # Debug print
+    #print(f"Running emulators: {running_emulators}")  # Debug print
     for i in running_emulators:
         avd_name = get_avd_name(i)
-        print(f"AVD name for {i}: {avd_name}")  # Debug print
+        #print(f"AVD name for {i}: {avd_name}")  # Debug print
         if avd_name:
             emulator_instance_list.append(i)
             emulator_name_list.append(avd_name)
     if emulator in emulator_name_list:
         return emulator_instance_list[emulator_name_list.index(emulator)]
     else:
-        print(f"Emulator {emulator} not found in running emulators")  # Debug print
+        #print(f"Emulator {emulator} not found in running emulators")  # Debug print
         return emulator
 
 def stop_emulator(emulator_id):
