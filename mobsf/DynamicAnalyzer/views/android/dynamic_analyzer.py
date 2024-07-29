@@ -71,8 +71,10 @@ mobsf_path = os.environ.get('MOBSF_PATH')
 # Utilizing path for Frida
 directory_path = os.path.join(mobsf_path, 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others')
 
-with open('permission_mappings.json', 'r') as f:
-    permission_mappings = json.load(f)
+mappings_path = Path('permission_mappings.json')
+
+with mappings_path.open('r', encoding='utf-8') as permission_map:
+    permission_mappings = json.load(permission_map)
 
 PERMISSION_GROUPS = permission_mappings['PERMISSION_GROUPS']
 API_GROUPS = permission_mappings['API_GROUPS']
@@ -176,7 +178,9 @@ def select_frida_script_permissions(permissions):
         if group:
             for filename in os.listdir(directory_path):
                 if cut_string(filename) == group:
-                    if filename not in scripts:
+                    if filename in scripts:
+                        pass
+                    else:
                         scripts.append(filename)
     return scripts
 
@@ -194,7 +198,9 @@ def select_frida_script_androidapis(androidapis):
         if group:
             for filename in os.listdir(directory_path):
                 if cut_string(filename) == group:
-                    if filename not in scripts:
+                    if filename in scripts:
+                        pass
+                    else:
                         scripts.append(filename)
     return scripts
 
