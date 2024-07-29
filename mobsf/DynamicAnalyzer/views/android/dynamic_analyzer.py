@@ -72,13 +72,27 @@ mobsf_path = os.environ.get('MOBSF_PATH')
 directory_path = os.path.join(mobsf_path, 'mobsf/DynamicAnalyzer/tools/frida_scripts/android/others')
 
 mappings_path = Path('permission_mappings.json')
+try:
+    with mappings_path.open('r', encoding='utf-8') as permission_map:
+        permission_mappings = json.load(permission_map)
 
-with mappings_path.open('r', encoding='utf-8') as permission_map:
-    permission_mappings = json.load(permission_map)
+except FileNotFoundError:
+    print("Error: Config file not found.")
+    permission_mappings = {}
+except json.JSONDecodeError as e:
+    print(f"Error: JSON decode error - {e}")
+    permission_mappings = {}
 
-PERMISSION_GROUPS = permission_mappings['PERMISSION_GROUPS']
-API_GROUPS = permission_mappings['API_GROUPS']
-PLAYSTOREINFORMATION_GROUPS = permission_mappings['PLAYSTOREINFORMATION_GROUPS']
+PERMISSION_GROUPS = permission_mappings.get('PERMISSION_GROUPS', {})
+API_GROUPS = permission_mappings.get('API_GROUPS', {})
+PLAYSTOREINFORMATION_GROUPS = permission_mappings.get('PLAYSTOREINFORMATION_GROUPS', {})
+
+if not PERMISSION_GROUPS:
+    print("Warning: PERMISSION_GROUPS not loaded.")
+if not API_GROUPS:
+    print("Warning: API_GROUPS not loaded.")
+if not PLAYSTOREINFORMATION_GROUPS:
+    print("Warning: PLAYSTOREINFORMATION_GROUPS not loaded.")
 
 def permisions_to_script(static_android_db, selectedscript):
        try:
